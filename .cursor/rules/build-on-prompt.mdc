@@ -1,0 +1,34 @@
+---
+description: Sempre buildar, testar e criar testes unitários cabíveis ao responder prompts
+alwaysApply: true
+---
+
+# Build, testes e cobertura obrigatórios
+
+Em toda resposta a um prompt neste repositório:
+
+1. Execute `dotnet build` na solução antes de concluir a tarefa.
+2. Execute `dotnet test` na solução após o build.
+3. Se houver erros de compilação ou testes falhando, corrija-os antes de finalizar.
+4. Informe brevemente o resultado do build e dos testes (sucesso ou falhas) quando houver alterações de código.
+
+## Testes unitários obrigatórios quando cabível
+
+Ao implementar ou alterar código, crie ou atualize testes unitários para tudo que for testável em isolamento:
+
+- Regras de domínio e entidades → `AcervoImobiliario.Domain.UnitTests`
+- Services, validators, factories e normalização → `AcervoImobiliario.Application.UnitTests`
+
+Use o padrão **AAA** (Arrange, Act, Assert) e a stack do projeto:
+
+- **xUnit** — framework de testes
+- **FluentAssertions** — assertions
+- **NSubstitute** — mocks (quando necessário)
+
+Não é obrigatório testar em testes unitários:
+
+- Controllers (delegam para services)
+- Repositórios MongoDB (preferir testes de integração)
+- Configuração, DI e bootstrap da API
+
+Quando o prompt introduzir comportamento novo testável, os testes fazem parte da entrega — não apenas o build.
