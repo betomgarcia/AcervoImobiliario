@@ -556,7 +556,7 @@ sequenceDiagram
 
 ## Publicação
 
-> Esta seção descreve o deploy preparado com base na configuração atual do projeto. **Não há arquivos `railway.toml` ou pipelines CI/CD** versionados neste repositório.
+> Guia completo de deploy no Railway (API + Frontend + MongoDB Atlas): [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md)
 
 ### Backend (API)
 
@@ -567,7 +567,7 @@ sequenceDiagram
 | **Porta** | Definida pela plataforma via `ASPNETCORE_URLS` ou variável `PORT` |
 | **Banco** | MongoDB (Atlas recomendado em produção) |
 | **Variáveis obrigatórias** | `MongoDb__ConnectionString`, `ASPNETCORE_ENVIRONMENT=Production` |
-| **CORS** | Atualmente liberado para `localhost:5173` — **ajustar origens** para o domínio do frontend em produção (`Program.cs`) |
+| **CORS** | Configurável via `Cors__AllowedOrigins__N` (ver guia Railway) |
 
 ### Frontend (Web)
 
@@ -586,12 +586,9 @@ sequenceDiagram
 | **Produção** | MongoDB Atlas ou serviço gerenciado compatível |
 | **Índices** | Criados automaticamente na inicialização da API |
 
-### Railway (orientação)
+### Railway
 
-1. Criar serviço **MongoDB** (plugin Atlas ou connection string externa).
-2. Criar serviço **API** apontando para `AcervoImobiliario.Api`, configurando `MongoDb__ConnectionString`.
-3. Criar serviço **Web** com build `npm run build` e publicação da pasta `dist/`, definindo `VITE_API_BASE_URL` com a URL pública da API.
-4. Atualizar política CORS na API com a URL do frontend publicado.
+O repositório inclui `Dockerfile`, `railway.toml` e health check em `/health`. Siga o passo a passo em [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md).
 
 ---
 

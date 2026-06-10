@@ -1,0 +1,7 @@
+# Configuração do serviço do frontend no Railway (Root Directory: AcervoImobiliario.Web)
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "on_failure"

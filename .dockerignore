@@ -1,0 +1,13 @@
+**/.git
+**/.vs
+**/.vscode
+**/.cursor
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/*.user
+**/*.suo
+AcervoImobiliario.Web/
+AcervoImobiliario.Domain.UnitTests/
+AcervoImobiliario.Application.UnitTests/
