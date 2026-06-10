@@ -1,4 +1,3 @@
-using AcervoImobiliario.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -24,12 +23,9 @@ public sealed class PropertyDocument
 
     public string Number { get; set; } = string.Empty;
 
-    [BsonRepresentation(BsonType.String)]
-    public ComplementType ComplementType { get; set; }
+    public string? Complement { get; set; }
 
-    public string? ComplementValue { get; set; }
-
-    public string? ComplementValueNormalized { get; set; }
+    public string ComplementNormalized { get; set; } = string.Empty;
 
     public string? CadastralIndex { get; set; }
 

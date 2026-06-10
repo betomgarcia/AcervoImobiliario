@@ -1,5 +1,3 @@
-using AcervoImobiliario.Domain.Enums;
-
 namespace AcervoImobiliario.Application.DTOs.Properties;
 
 public sealed record SearchPropertiesQuery(
@@ -7,7 +5,6 @@ public sealed record SearchPropertiesQuery(
     string? Neighborhood = null,
     string? Street = null,
     string? Number = null,
-    ComplementType? ComplementType = null,
-    string? ComplementValue = null,
+    string? Complement = null,
     string? CadastralIndex = null,
     bool IncludeInactive = false);

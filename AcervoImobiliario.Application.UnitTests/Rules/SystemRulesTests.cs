@@ -20,23 +20,33 @@ namespace AcervoImobiliario.Application.UnitTests.Rules;
 public class SystemRulesTests
 {
     private readonly TextNormalizer _textNormalizer = new();
+    private readonly AddressNormalizationService _addressNormalizationService = new();
 
     [Fact]
     [Trait("Regra", "Normalização de texto")]
     public void NormalizacaoDeTexto_DeveRemoverAcentosMinusculasEEspacosExtras()
     {
-        // Act
         var result = _textNormalizer.Normalize("  São   José  ");
 
-        // Assert
         result.Should().Be("sao jose");
+    }
+
+    [Theory]
+    [Trait("Regra", "Normalização de complemento")]
+    [InlineData("Apartamento 303 Bloco A", "APT 303 BLOCO A")]
+    [InlineData("APT 303 BLOCO A", "APT 303 BLOCO A")]
+    [InlineData(" apto 303 bloco a ", "APT 303 BLOCO A")]
+    public void NormalizacaoDeComplemento_DeveUnificarEscritasEquivalentes(
+        string input,
+        string expected)
+    {
+        _addressNormalizationService.NormalizeComplement(input).Should().Be(expected);
     }
 
     [Fact]
     [Trait("Regra", "Cidade duplicada")]
     public async Task CidadeDuplicada_DeveRetornarConflito()
     {
-        // Arrange
         var cityRepository = Substitute.For<ICityRepository>();
         var cityFactory = Substitute.For<ICityFactory>();
         var normalizer = Substitute.For<ITextNormalizer>();
@@ -49,13 +59,11 @@ public class SystemRulesTests
         cityRepository.GetByNameNormalizedAndStateAsync("belo horizonte", "MG", Arg.Any<CancellationToken>())
             .Returns(existingCity);
 
-        // Act
         var result = await sut.CreateAsync(request);
 
-        // Assert
         result.ShouldBeFailure(
             ErrorKind.Conflict,
-            "Já existe uma cidade cadastrada com o nome 'Belo Horizonte' no estado 'MG'.");
+            "Já existe uma cidade cadastrada com este nome.");
         await cityRepository.DidNotReceive().CreateAsync(Arg.Any<City>(), Arg.Any<CancellationToken>());
     }
 
@@ -63,15 +71,20 @@ public class SystemRulesTests
     [Trait("Regra", "Imóvel duplicado")]
     public async Task ImovelDuplicado_DeveRetornarConflito()
     {
-        // Arrange
         var propertyRepository = Substitute.For<IPropertyRepository>();
         var cityRepository = Substitute.For<ICityRepository>();
         var propertyFactory = Substitute.For<IPropertyFactory>();
         var normalizer = Substitute.For<ITextNormalizer>();
-        var sut = new PropertyService(propertyRepository, cityRepository, propertyFactory, normalizer);
+        var addressNormalization = Substitute.For<IAddressNormalizationService>();
+        var sut = new PropertyService(
+            propertyRepository,
+            cityRepository,
+            propertyFactory,
+            normalizer,
+            addressNormalization);
 
         var request = new CreatePropertyRequest(
-            "city-1", "Centro", "Rua das Flores", "100", ComplementType.Apartment, "Apto 12", null);
+            "city-1", "Centro", "Rua das Flores", "100", "Apto 12", null);
         var city = City.Create("city-1", "Belo Horizonte", "belo horizonte", "MG");
         var existingProperty = Property.Create(
             "property-existing",
@@ -82,61 +95,59 @@ public class SystemRulesTests
             request.Street,
             "rua das flores",
             request.Number,
-            request.ComplementType,
-            request.ComplementValue,
-            "apto 12",
-            null);
+            request.Complement,
+            "APT 12");
 
         cityRepository.GetByIdAsync(request.CityId, Arg.Any<CancellationToken>()).Returns(city);
         normalizer.Normalize(request.Neighborhood).Returns("centro");
         normalizer.Normalize(request.Street).Returns("rua das flores");
-        normalizer.Normalize(request.ComplementValue!).Returns("apto 12");
+        addressNormalization.NormalizeComplement(request.Complement).Returns("APT 12");
         propertyRepository.GetByUniqueAddressAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
-            Arg.Any<ComplementType>(),
-            Arg.Any<string?>(),
+            "APT 12",
             Arg.Any<CancellationToken>()).Returns(existingProperty);
 
-        // Act
         var result = await sut.CreateAsync(request);
 
-        // Assert
         result.ShouldBeFailure(ErrorKind.Conflict, "Já existe um imóvel cadastrado para este endereço.");
         await propertyRepository.DidNotReceive().CreateAsync(Arg.Any<Property>(), Arg.Any<CancellationToken>());
     }
 
-    [Theory]
-    [Trait("Regra", "Complemento obrigatório")]
-    [InlineData(ComplementType.Apartment)]
-    [InlineData(ComplementType.Room)]
-    [InlineData(ComplementType.Store)]
-    public void ComplementoObrigatorio_ParaTiposExigentes_DeveFalharSemValor(ComplementType complementType)
-    {
-        // Act
-        var result = PropertyAddressValidator.Validate(
-            "city-1", "Centro", "Rua A", "100", complementType, null);
-
-        // Assert
-        result.ShouldBeFailure(ErrorKind.Validation);
-        result.Error!.Errors.Should().Contain(
-            $"ComplementValue é obrigatório quando ComplementType for {complementType}.");
-    }
-
     [Fact]
-    [Trait("Regra", "Complemento vazio quando None")]
-    public void ComplementoVazio_QuandoComplementTypeNone_DeveFalharComValorInformado()
+    [Trait("Regra", "Complemento equivalente na chave")]
+    public void ComplementosEquivalentes_DevemGerarMesmaChaveDeEndereco()
     {
-        // Act
-        var result = PropertyAddressValidator.Validate(
-            "city-1", "Centro", "Rua A", "100", ComplementType.None, "Sala 1");
+        var normalizedA = _addressNormalizationService.NormalizeComplement("Apartamento 303 Bloco A");
+        var normalizedB = _addressNormalizationService.NormalizeComplement(" apto 303 bloco a ");
 
-        // Assert
-        result.ShouldBeFailure(ErrorKind.Validation);
-        result.Error!.Errors.Should().Contain(
-            "ComplementValue deve ser vazio ou nulo quando ComplementType for None.");
+        var propertyA = Property.Create(
+            "property-a",
+            "city-1",
+            "Belo Horizonte",
+            "Centro",
+            "centro",
+            "Rua A",
+            "rua a",
+            "100",
+            "Apartamento 303 Bloco A",
+            normalizedA);
+
+        var propertyB = Property.Create(
+            "property-b",
+            "city-1",
+            "Belo Horizonte",
+            "Centro",
+            "centro",
+            "Rua A",
+            "rua a",
+            "100",
+            " apto 303 bloco a ",
+            normalizedB);
+
+        propertyA.GenerateAddressKey().Should().Be(propertyB.GenerateAddressKey());
     }
 
     [Theory]
@@ -146,11 +157,9 @@ public class SystemRulesTests
     [InlineData("12-34")]
     public void Numero_SomenteDigitos_DeveRejeitarValoresInvalidos(string number)
     {
-        // Act
         var result = PropertyAddressValidator.Validate(
-            "city-1", "Centro", "Rua A", number, ComplementType.None, null);
+            "city-1", "Centro", "Rua A", number);
 
-        // Assert
         result.ShouldBeFailure(ErrorKind.Validation);
         result.Error!.Errors.Should().Contain("O número deve conter somente dígitos.");
     }
@@ -167,13 +176,10 @@ public class SystemRulesTests
         string number,
         string expectedMessage)
     {
-        // Arrange
         var query = new SearchPropertiesQuery(cityId, neighborhood, street, number);
 
-        // Act
         var result = SearchPropertiesQueryValidator.Validate(query);
 
-        // Assert
         result.ShouldBeFailure(ErrorKind.Validation, expectedMessage);
     }
 
@@ -181,7 +187,6 @@ public class SystemRulesTests
     [Trait("Regra", "Histórico para imóvel existente")]
     public async Task Historico_ParaImovelExistente_DeveRegistrarComSucesso()
     {
-        // Arrange
         var historyRepository = Substitute.For<IPropertyHistoryRepository>();
         var propertyRepository = Substitute.For<IPropertyRepository>();
         var sut = new PropertyHistoryService(historyRepository, propertyRepository);
@@ -194,12 +199,10 @@ public class SystemRulesTests
 
         propertyRepository.GetByIdAsync(propertyId, Arg.Any<CancellationToken>())
             .Returns(Property.Create(
-                propertyId, "city-1", "Belo Horizonte", "Centro", "centro", "Rua A", "rua a", "100", ComplementType.None));
+                propertyId, "city-1", "Belo Horizonte", "Centro", "centro", "Rua A", "rua a", "100"));
 
-        // Act
         var result = await sut.CreateAsync(propertyId, request);
 
-        // Assert
         var response = result.ShouldBeSuccess();
         response.PropertyId.Should().Be(propertyId);
         await historyRepository.Received(1).CreateAsync(
@@ -211,7 +214,6 @@ public class SystemRulesTests
     [Trait("Regra", "Histórico para imóvel inexistente")]
     public async Task Historico_ParaImovelInexistente_DeveRetornarNaoEncontrado()
     {
-        // Arrange
         var historyRepository = Substitute.For<IPropertyHistoryRepository>();
         var propertyRepository = Substitute.For<IPropertyRepository>();
         var sut = new PropertyHistoryService(historyRepository, propertyRepository);
@@ -224,10 +226,8 @@ public class SystemRulesTests
             DateTime.UtcNow,
             "Observação registrada");
 
-        // Act
         var result = await sut.CreateAsync("inexistente", request);
 
-        // Assert
         result.ShouldBeFailure(ErrorKind.NotFound, "Imóvel 'inexistente' não encontrado.");
         await historyRepository.DidNotReceive().CreateAsync(
             Arg.Any<PropertyHistory>(),

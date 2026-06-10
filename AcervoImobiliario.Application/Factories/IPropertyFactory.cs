@@ -1,5 +1,5 @@
+using AcervoImobiliario.Application.Interfaces;
 using AcervoImobiliario.Domain.Entities;
-using AcervoImobiliario.Domain.Enums;
 
 namespace AcervoImobiliario.Application.Factories;
 
@@ -12,8 +12,7 @@ public interface IPropertyFactory
         string neighborhood,
         string street,
         string number,
-        ComplementType complementType,
-        string? complementValue = null,
+        string? complement = null,
         string? cadastralIndex = null);
 
     void UpdateAddress(
@@ -23,8 +22,7 @@ public interface IPropertyFactory
         string neighborhood,
         string street,
         string number,
-        ComplementType complementType,
-        string? complementValue,
+        string? complement,
         string? cadastralIndex,
         bool isActive);
 }

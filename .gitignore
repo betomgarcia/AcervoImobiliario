@@ -35,3 +35,11 @@ bld/
 ## OS
 .DS_Store
 Thumbs.db
+
+## Node / Frontend
+node_modules/
+dist/
+.env
+.env.local
+*.local
+dev-dist/

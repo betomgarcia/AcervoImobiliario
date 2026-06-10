@@ -1,7 +1,6 @@
 using AcervoImobiliario.Application.DTOs.Properties;
 using AcervoImobiliario.Application.Interfaces;
 using AcervoImobiliario.Domain.Entities;
-using AcervoImobiliario.Domain.Enums;
 using AcervoImobiliario.Infrastructure.Persistence;
 using AcervoImobiliario.Infrastructure.Persistence.Documents;
 using AcervoImobiliario.Infrastructure.Persistence.Mappers;
@@ -40,8 +39,7 @@ public sealed class PropertyRepository : IPropertyRepository
         string neighborhoodNormalized,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValueNormalized,
+        string complementNormalized,
         CancellationToken cancellationToken = default)
     {
         var filter = Builders<PropertyDocument>.Filter.And(
@@ -49,12 +47,9 @@ public sealed class PropertyRepository : IPropertyRepository
             Builders<PropertyDocument>.Filter.Eq(property => property.NeighborhoodNormalized, neighborhoodNormalized),
             Builders<PropertyDocument>.Filter.Eq(property => property.StreetNormalized, streetNormalized),
             Builders<PropertyDocument>.Filter.Eq(property => property.Number, number),
-            Builders<PropertyDocument>.Filter.Eq(property => property.ComplementType, complementType),
-            complementValueNormalized is null
-                ? Builders<PropertyDocument>.Filter.Eq(property => property.ComplementValueNormalized, null)
-                : Builders<PropertyDocument>.Filter.Eq(
-                    property => property.ComplementValueNormalized,
-                    complementValueNormalized));
+            Builders<PropertyDocument>.Filter.Eq(
+                property => property.ComplementNormalized,
+                complementNormalized));
 
         var document = await _context.Properties
             .Find(filter)
@@ -105,17 +100,11 @@ public sealed class PropertyRepository : IPropertyRepository
                     criteria.Number));
             }
 
-            if (criteria.ComplementType.HasValue)
+            if (criteria.ComplementNormalized is not null)
             {
                 filters.Add(Builders<PropertyDocument>.Filter.Eq(
-                    property => property.ComplementType,
-                    criteria.ComplementType.Value));
-
-                filters.Add(criteria.ComplementValueNormalized is null
-                    ? Builders<PropertyDocument>.Filter.Eq(property => property.ComplementValueNormalized, null)
-                    : Builders<PropertyDocument>.Filter.Eq(
-                        property => property.ComplementValueNormalized,
-                        criteria.ComplementValueNormalized));
+                    property => property.ComplementNormalized,
+                    criteria.ComplementNormalized));
             }
         }
 

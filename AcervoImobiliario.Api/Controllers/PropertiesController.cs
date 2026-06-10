@@ -1,7 +1,6 @@
 using AcervoImobiliario.Api.Extensions;
 using AcervoImobiliario.Application.DTOs.Properties;
 using AcervoImobiliario.Application.Interfaces;
-using AcervoImobiliario.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AcervoImobiliario.Api.Controllers;
@@ -25,8 +24,7 @@ public sealed class PropertiesController : ControllerBase
         [FromQuery] string? neighborhood,
         [FromQuery] string? street,
         [FromQuery] string? number,
-        [FromQuery] ComplementType? complementType,
-        [FromQuery] string? complementValue,
+        [FromQuery] string? complement,
         [FromQuery] string? cadastralIndex,
         [FromQuery] bool includeInactive = false,
         CancellationToken cancellationToken = default)
@@ -36,8 +34,7 @@ public sealed class PropertiesController : ControllerBase
             neighborhood,
             street,
             number,
-            complementType,
-            complementValue,
+            complement,
             cadastralIndex,
             includeInactive);
 

@@ -34,8 +34,7 @@ public class PropertyHistoryServiceTests
             "centro",
             "Rua A",
             "rua a",
-            "100",
-            ComplementType.None);
+            "100");
 
     [Fact]
     public async Task CreateAsync_ComDadosValidos_DeveRegistrarHistorico()

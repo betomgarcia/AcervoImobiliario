@@ -1,5 +1,6 @@
 using AcervoImobiliario.Application.Interfaces;
 using AcervoImobiliario.Infrastructure.Configuration;
+using AcervoImobiliario.Infrastructure.Migrations;
 using AcervoImobiliario.Infrastructure.Persistence;
 using AcervoImobiliario.Infrastructure.Repositories;
 using AcervoImobiliario.Infrastructure.Seeding;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IPropertyRepository, PropertyRepository>();
         services.AddScoped<IPropertyHistoryRepository, PropertyHistoryRepository>();
         services.AddScoped<MongoDbIndexInitializer>();
+        services.AddScoped<PropertyComplementBackfillInitializer>();
         services.AddScoped<CitySeedInitializer>();
         services.AddScoped<MongoDbInitializer>();
 

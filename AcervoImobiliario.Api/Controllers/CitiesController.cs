@@ -18,10 +18,12 @@ public sealed class CitiesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<CityResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<CityResponse>>> ListActive(
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<CityResponse>>> List(
+        [FromQuery] string? name,
+        [FromQuery] CityStatusFilter status = CityStatusFilter.Active,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _cityService.ListActiveAsync(cancellationToken);
+        var result = await _cityService.ListAsync(new ListCitiesQuery(name, status), cancellationToken);
         return result.ToActionResult();
     }
 
@@ -33,6 +35,17 @@ public sealed class CitiesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _cityService.SearchAsync(term, cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CityResponse>> GetById(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _cityService.GetByIdAsync(id, cancellationToken);
         return result.ToActionResult();
     }
 
@@ -59,6 +72,28 @@ public sealed class CitiesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _cityService.UpdateAsync(id, request, cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id}/activate")]
+    [ProducesResponseType(typeof(CityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CityResponse>> Activate(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _cityService.ActivateAsync(id, cancellationToken);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id}/deactivate")]
+    [ProducesResponseType(typeof(CityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CityResponse>> Deactivate(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _cityService.DeactivateAsync(id, cancellationToken);
         return result.ToActionResult();
     }
 }

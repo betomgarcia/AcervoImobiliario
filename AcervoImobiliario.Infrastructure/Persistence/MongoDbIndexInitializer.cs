@@ -6,6 +6,8 @@ namespace AcervoImobiliario.Infrastructure.Persistence;
 
 public sealed class MongoDbIndexInitializer
 {
+    private const string PropertyUniqueAddressIndexName = "ux_property_unique_address";
+
     private readonly MongoDbContext _context;
     private readonly ILogger<MongoDbIndexInitializer> _logger;
 
@@ -29,18 +31,19 @@ public sealed class MongoDbIndexInitializer
 
         await _context.Cities.Indexes.CreateOneAsync(cityIndexModel, cancellationToken: cancellationToken);
 
+        await DropPropertyUniqueAddressIndexIfExistsAsync(cancellationToken);
+
         var propertyIndexModel = new CreateIndexModel<PropertyDocument>(
             Builders<PropertyDocument>.IndexKeys
                 .Ascending(property => property.CityId)
                 .Ascending(property => property.NeighborhoodNormalized)
                 .Ascending(property => property.StreetNormalized)
                 .Ascending(property => property.Number)
-                .Ascending(property => property.ComplementType)
-                .Ascending(property => property.ComplementValueNormalized),
+                .Ascending(property => property.ComplementNormalized),
             new CreateIndexOptions
             {
                 Unique = true,
-                Name = "ux_property_unique_address"
+                Name = PropertyUniqueAddressIndexName
             });
 
         await _context.Properties.Indexes.CreateOneAsync(propertyIndexModel, cancellationToken: cancellationToken);
@@ -59,5 +62,23 @@ public sealed class MongoDbIndexInitializer
             cancellationToken: cancellationToken);
 
         _logger.LogInformation("Índices do MongoDB inicializados com sucesso.");
+    }
+
+    private async Task DropPropertyUniqueAddressIndexIfExistsAsync(CancellationToken cancellationToken)
+    {
+        var indexes = await _context.Properties.Indexes
+            .ListAsync(cancellationToken);
+
+        var indexNames = await indexes.ToListAsync(cancellationToken);
+        var hasUniqueAddressIndex = indexNames.Any(index =>
+            index.Contains("name") && index["name"].AsString == PropertyUniqueAddressIndexName);
+
+        if (!hasUniqueAddressIndex)
+        {
+            return;
+        }
+
+        await _context.Properties.Indexes.DropOneAsync(PropertyUniqueAddressIndexName, cancellationToken);
+        _logger.LogInformation("Índice {IndexName} removido para recriação.", PropertyUniqueAddressIndexName);
     }
 }
