@@ -9,6 +9,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { tokens } from '@/theme/tokens';
 import type { PropertyHistoryResponse } from '@/types/api';
 import { formatDate, formatDateTime, summarizeText } from '@/utils/format';
 import { historyEventTypeColors, historyEventTypeLabels } from '@/utils/labels';
@@ -33,7 +34,7 @@ export function HistoryTimeline({ histories }: HistoryTimelineProps) {
           left: { xs: 15, sm: 23 },
           width: 4,
           borderRadius: 999,
-          background: 'linear-gradient(180deg, #1565C0 0%, #00838F 100%)',
+          background: tokens.gradient.timeline,
           opacity: 0.25,
         }}
       />

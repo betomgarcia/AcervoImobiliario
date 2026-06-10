@@ -1,3 +1,4 @@
+using AcervoImobiliario.Application.DTOs.Cities;
 using AcervoImobiliario.Application.Interfaces;
 using AcervoImobiliario.Domain.Entities;
 using AcervoImobiliario.Infrastructure.Persistence;
@@ -43,22 +44,45 @@ public sealed class CityRepository : ICityRepository
         return document is null ? null : CityDocumentMapper.ToEntity(document);
     }
 
-    public async Task<IReadOnlyList<City>> ListActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<City>> ListAsync(
+        string? nameNormalized,
+        CityStatusFilter status,
+        CancellationToken cancellationToken = default)
     {
+        var filter = BuildStatusFilter(status);
+
+        if (!string.IsNullOrWhiteSpace(nameNormalized))
+        {
+            filter = Builders<CityDocument>.Filter.And(
+                filter,
+                Builders<CityDocument>.Filter.Regex(
+                    city => city.NameNormalized,
+                    new MongoDB.Bson.BsonRegularExpression(nameNormalized, "i")));
+        }
+
         var documents = await _context.Cities
-            .Find(city => city.IsActive)
+            .Find(filter)
             .SortBy(city => city.NameNormalized)
             .ToListAsync(cancellationToken);
 
         return documents.Select(CityDocumentMapper.ToEntity).ToList();
     }
 
-    public async Task<IReadOnlyList<City>> SearchByNameNormalizedAsync(
+    public Task<IReadOnlyList<City>> ListActiveAsync(CancellationToken cancellationToken = default) =>
+        ListAsync(null, CityStatusFilter.Active, cancellationToken);
+
+    public async Task<IReadOnlyList<City>> SearchActiveByNameNormalizedAsync(
         string termNormalized,
         CancellationToken cancellationToken = default)
     {
+        var filter = Builders<CityDocument>.Filter.And(
+            Builders<CityDocument>.Filter.Eq(city => city.IsActive, true),
+            Builders<CityDocument>.Filter.Regex(
+                city => city.NameNormalized,
+                new MongoDB.Bson.BsonRegularExpression(termNormalized, "i")));
+
         var documents = await _context.Cities
-            .Find(city => city.NameNormalized.Contains(termNormalized))
+            .Find(filter)
             .SortBy(city => city.NameNormalized)
             .ToListAsync(cancellationToken);
 
@@ -73,4 +97,12 @@ public sealed class CityRepository : ICityRepository
             document,
             cancellationToken: cancellationToken);
     }
+
+    private static FilterDefinition<CityDocument> BuildStatusFilter(CityStatusFilter status) =>
+        status switch
+        {
+            CityStatusFilter.Active => Builders<CityDocument>.Filter.Eq(city => city.IsActive, true),
+            CityStatusFilter.Inactive => Builders<CityDocument>.Filter.Eq(city => city.IsActive, false),
+            _ => Builders<CityDocument>.Filter.Empty,
+        };
 }

@@ -1,10 +1,9 @@
+import AddIcon from '@mui/icons-material/Add';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   Divider,
   Grid,
@@ -14,10 +13,12 @@ import {
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { QueryState } from '@/components/common/QueryState';
 import { PageHeader } from '@/components/common/PageHeader';
+import { AppCard } from '@/components/ui/AppCard';
+import { InfoField } from '@/components/ui/InfoField';
+import { StatusChip } from '@/components/ui/StatusChip';
 import { useProperty } from '@/hooks/useProperties';
-import { formatAddress, formatDateTime } from '@/utils/format';
-import { complementTypeLabels } from '@/utils/labels';
-import { ComplementType } from '@/types/api';
+import { formatAddress, formatDateTime, formatFullPropertyAddress } from '@/utils/format';
+import { tokens } from '@/theme/tokens';
 
 export function PropertyDetailPage() {
   const { id = '' } = useParams();
@@ -34,118 +35,111 @@ export function PropertyDetailPage() {
       isEmpty={(property) => !property}
     >
       {(property) => {
-        const complementText =
-          property.complementType === ComplementType.None
-            ? 'Sem complemento'
-            : `${complementTypeLabels[property.complementType]}${property.complementValue ? `: ${property.complementValue}` : ''}`;
+        const complementText = property.complement?.trim() || 'Sem complemento';
+        const fullAddress = formatFullPropertyAddress(property);
 
         return (
           <Stack spacing={3}>
             <PageHeader
-              title="Detalhe do imóvel"
+              title="Detalhes do imóvel"
               subtitle={formatAddress(
                 property.street,
                 property.number,
                 property.neighborhood,
                 property.cityNameSnapshot,
               )}
-              action={
-                <Button
-                  component={RouterLink}
-                  to={`/imoveis/${property.id}/historico`}
-                  variant="contained"
-                  startIcon={<HistoryEduIcon />}
-                >
-                  Ver histórico
-                </Button>
-              }
             />
 
-            <Card>
-              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-                  <LocationOnIcon color="primary" />
-                  <Typography variant="h5">Endereço</Typography>
+            <AppCard
+              noHover
+              sx={{
+                borderLeft: `4px solid ${tokens.color.primary}`,
+              }}
+            >
+                <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 2 }}>
+                  <LocationOnIcon color="primary" sx={{ mt: 0.25 }} />
+                  <Box>
+                    <Typography variant="h5" sx={{ lineHeight: 1.35 }}>
+                      {fullAddress}
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
+                      <StatusChip active={property.isActive} />
+                    </Stack>
+                  </Box>
                 </Stack>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem label="Cidade" value={property.cityNameSnapshot} />
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField label="Cidade" value={property.cityNameSnapshot} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem label="Bairro" value={property.neighborhood} />
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField label="Bairro" value={property.neighborhood} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem label="Rua" value={property.street} />
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField label="Rua" value={property.street} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem label="Número" value={property.number} />
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField label="Número" value={property.number} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem label="Complemento" value={complementText} />
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField label="Complemento" value={complementText} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <InfoItem
+                  <Grid item xs={12} sm={6} md={4}>
+                    <InfoField
                       label="Índice cadastral"
                       value={property.cadastralIndex ?? 'Não informado'}
                     />
                   </Grid>
                 </Grid>
 
-                <Divider sx={{ my: 3 }} />
+                <Divider sx={{ my: 2.5 }} />
 
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Chip
-                    label={property.isActive ? 'Ativo' : 'Inativo'}
-                    color={property.isActive ? 'success' : 'default'}
-                  />
-                  <Chip
                     variant="outlined"
+                    size="small"
                     label={`Cadastrado em ${formatDateTime(property.createdAt)}`}
                   />
                   {property.updatedAt ? (
                     <Chip
                       variant="outlined"
+                      size="small"
                       label={`Atualizado em ${formatDateTime(property.updatedAt)}`}
                     />
                   ) : null}
                 </Stack>
-              </CardContent>
-            </Card>
+            </AppCard>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <Button
-                component={RouterLink}
-                to={`/imoveis/${property.id}/historico`}
-                variant="outlined"
-                startIcon={<HistoryEduIcon />}
-              >
-                Histórico completo
-              </Button>
-              <Button
-                component={RouterLink}
-                to={`/imoveis/${property.id}/historico/novo`}
-                variant="contained"
-              >
-                Registrar evento
-              </Button>
-            </Stack>
+            <AppCard noHover>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Ações
+                </Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  <Button
+                    component={RouterLink}
+                    to={`/imoveis/${property.id}/historico`}
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<HistoryEduIcon />}
+                    fullWidth
+                  >
+                    Ver histórico
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to={`/imoveis/${property.id}/historico/novo`}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    fullWidth
+                  >
+                    Adicionar histórico
+                  </Button>
+                </Stack>
+            </AppCard>
           </Stack>
         );
       }}
     </QueryState>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <Box>
-      <Typography variant="caption" color="text.secondary" display="block">
-        {label}
-      </Typography>
-      <Typography variant="body1" fontWeight={600}>
-        {value}
-      </Typography>
-    </Box>
   );
 }

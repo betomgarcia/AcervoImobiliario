@@ -1,5 +1,4 @@
 using AcervoImobiliario.Domain.Entities;
-using AcervoImobiliario.Domain.Enums;
 using AcervoImobiliario.Domain.Exceptions;
 using FluentAssertions;
 
@@ -10,17 +9,12 @@ public class PropertyTests
     [Fact]
     public void Create_ComEnderecoValido_DeveCriarImovelAtivo()
     {
-        // Arrange
-        const string id = "property-1";
+        var property = CreateValidProperty("property-1");
 
-        // Act
-        var property = CreateValidProperty(id);
-
-        // Assert
-        property.Id.Should().Be(id);
+        property.Id.Should().Be("property-1");
         property.Number.Should().Be("100");
-        property.ComplementType.Should().Be(ComplementType.Apartment);
-        property.ComplementValue.Should().Be("101");
+        property.Complement.Should().Be("Apartamento 101");
+        property.ComplementNormalized.Should().Be("APT 101");
         property.IsActive.Should().BeTrue();
     }
 
@@ -29,7 +23,6 @@ public class PropertyTests
     [InlineData("S/N")]
     public void Create_ComNumeroInvalido_DeveLancarDomainException(string number)
     {
-        // Arrange & Act
         var act = () => Property.Create(
             "property-1",
             "city-1",
@@ -38,18 +31,15 @@ public class PropertyTests
             "centro",
             "Rua A",
             "rua a",
-            number,
-            ComplementType.None);
+            number);
 
-        // Assert
         act.Should().Throw<DomainException>()
             .WithMessage("O número do imóvel deve conter somente dígitos.");
     }
 
     [Fact]
-    public void Create_ComApartamentoSemComplementValue_DeveLancarDomainException()
+    public void Create_ComComplementoSemNormalizado_DeveLancarDomainException()
     {
-        // Arrange & Act
         var act = () => Property.Create(
             "property-1",
             "city-1",
@@ -59,19 +49,16 @@ public class PropertyTests
             "Rua A",
             "rua a",
             "100",
-            ComplementType.Apartment,
-            complementValue: null,
-            complementValueNormalized: null);
+            "Apartamento 101",
+            complementNormalized: string.Empty);
 
-        // Assert
         act.Should().Throw<DomainException>()
-            .WithMessage($"ComplementValue é obrigatório para o tipo de complemento '{ComplementType.Apartment}'.");
+            .WithMessage("ComplementNormalized é obrigatório quando Complement é informado.");
     }
 
     [Fact]
-    public void Create_ComComplementTypeNoneEComplementValue_DeveLancarDomainException()
+    public void Create_SemComplementoComNormalizado_DeveLancarDomainException()
     {
-        // Arrange & Act
         var act = () => Property.Create(
             "property-1",
             "city-1",
@@ -81,22 +68,35 @@ public class PropertyTests
             "Rua A",
             "rua a",
             "100",
-            ComplementType.None,
-            complementValue: "101",
-            complementValueNormalized: "101");
+            complement: null,
+            complementNormalized: "APT 101");
 
-        // Assert
         act.Should().Throw<DomainException>()
-            .WithMessage("Imóveis sem complemento não devem informar ComplementValue.");
+            .WithMessage("ComplementNormalized deve ser vazio quando Complement não é informado.");
+    }
+
+    [Fact]
+    public void Create_SemComplemento_DevePersistirComplementNormalizedVazio()
+    {
+        var property = Property.Create(
+            "property-1",
+            "city-1",
+            "Belo Horizonte",
+            "Centro",
+            "centro",
+            "Rua A",
+            "rua a",
+            "100");
+
+        property.Complement.Should().BeNull();
+        property.ComplementNormalized.Should().BeEmpty();
     }
 
     [Fact]
     public void UpdateAddress_ComDadosValidos_DeveAtualizarEnderecoIsActiveEUpdatedAt()
     {
-        // Arrange
         var property = CreateValidProperty("property-1");
 
-        // Act
         property.UpdateAddress(
             "city-2",
             "Contagem",
@@ -105,13 +105,11 @@ public class PropertyTests
             "Rua Pernambuco",
             "rua pernambuco",
             "200",
-            ComplementType.None,
             null,
-            null,
+            string.Empty,
             "IDX-2",
             isActive: false);
 
-        // Assert
         property.CityId.Should().Be("city-2");
         property.CityNameSnapshot.Should().Be("Contagem");
         property.Number.Should().Be("200");
@@ -120,16 +118,41 @@ public class PropertyTests
     }
 
     [Fact]
-    public void GenerateAddressKey_DeveMontarChaveComCamposNormalizados()
+    public void GenerateAddressKey_DeveMontarChaveComComplementNormalized()
     {
-        // Arrange
         var property = CreateValidProperty("property-1");
 
-        // Act
-        var addressKey = property.GenerateAddressKey();
+        property.GenerateAddressKey().Should().Be("city-1|centro|rua a|100|APT 101");
+    }
 
-        // Assert
-        addressKey.Should().Be("city-1|centro|rua a|100|Apartment|101");
+    [Fact]
+    public void GenerateAddressKey_ComComplementosEquivalentesNormalizados_DeveSerIdentica()
+    {
+        var propertyA = Property.Create(
+            "property-a",
+            "city-1",
+            "Belo Horizonte",
+            "Centro",
+            "centro",
+            "Rua A",
+            "rua a",
+            "100",
+            "Apartamento 303 Bloco A",
+            "APT 303 BLOCO A");
+
+        var propertyB = Property.Create(
+            "property-b",
+            "city-1",
+            "Belo Horizonte",
+            "Centro",
+            "centro",
+            "Rua A",
+            "rua a",
+            "100",
+            "APT 303 BLOCO A",
+            "APT 303 BLOCO A");
+
+        propertyA.GenerateAddressKey().Should().Be(propertyB.GenerateAddressKey());
     }
 
     private static Property CreateValidProperty(string id) =>
@@ -142,7 +165,6 @@ public class PropertyTests
             "Rua A",
             "rua a",
             "100",
-            ComplementType.Apartment,
-            "101",
-            "101");
+            "Apartamento 101",
+            "APT 101");
 }

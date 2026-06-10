@@ -3,7 +3,9 @@ import type { HistorySortDirection, SearchPropertiesParams } from '@/types/api';
 export const queryKeys = {
   cities: {
     all: ['cities'] as const,
-    list: () => [...queryKeys.cities.all, 'list'] as const,
+    list: (status: string = 'Active', name?: string) =>
+      [...queryKeys.cities.all, 'list', status, name ?? ''] as const,
+    detail: (id: string) => [...queryKeys.cities.all, 'detail', id] as const,
     search: (term: string) => [...queryKeys.cities.all, 'search', term] as const,
   },
   properties: {

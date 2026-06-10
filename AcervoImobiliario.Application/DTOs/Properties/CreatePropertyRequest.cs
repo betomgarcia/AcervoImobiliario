@@ -1,5 +1,3 @@
-using AcervoImobiliario.Domain.Enums;
-
 namespace AcervoImobiliario.Application.DTOs.Properties;
 
 public sealed record CreatePropertyRequest(
@@ -7,6 +5,5 @@ public sealed record CreatePropertyRequest(
     string Neighborhood,
     string Street,
     string Number,
-    ComplementType ComplementType,
-    string? ComplementValue,
+    string? Complement,
     string? CadastralIndex);

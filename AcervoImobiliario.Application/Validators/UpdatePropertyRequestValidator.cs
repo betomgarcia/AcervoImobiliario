@@ -11,8 +11,6 @@ public static class UpdatePropertyRequestValidator
             request.CityId,
             request.Neighborhood,
             request.Street,
-            request.Number,
-            request.ComplementType,
-            request.ComplementValue);
+            request.Number);
     }
 }

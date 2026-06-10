@@ -67,7 +67,7 @@ public class CityServiceTests
             null);
 
         _textNormalizer.Normalize(term).Returns(termNormalized);
-        _cityRepository.SearchByNameNormalizedAsync(termNormalized, Arg.Any<CancellationToken>())
+        _cityRepository.SearchActiveByNameNormalizedAsync(termNormalized, Arg.Any<CancellationToken>())
             .Returns(new List<City> { city });
 
         // Act
@@ -78,7 +78,7 @@ public class CityServiceTests
         cities.Should().ContainSingle();
         cities[0].NameNormalized.Should().Be("belo horizonte");
         _textNormalizer.Received(1).Normalize(term);
-        await _cityRepository.Received(1).SearchByNameNormalizedAsync(termNormalized, Arg.Any<CancellationToken>());
+        await _cityRepository.Received(1).SearchActiveByNameNormalizedAsync(termNormalized, Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -94,7 +94,7 @@ public class CityServiceTests
         // Assert
         result.ShouldBeFailure(ErrorKind.Validation, "O parâmetro term deve conter no mínimo 2 caracteres.");
 
-        await _cityRepository.DidNotReceive().SearchByNameNormalizedAsync(
+        await _cityRepository.DidNotReceive().SearchActiveByNameNormalizedAsync(
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
@@ -138,7 +138,7 @@ public class CityServiceTests
         // Assert
         result.ShouldBeFailure(
             ErrorKind.Conflict,
-            "Já existe uma cidade cadastrada com o nome 'Belo Horizonte' no estado 'MG'.");
+            "Já existe uma cidade cadastrada com este nome.");
 
         await _cityRepository.DidNotReceive().CreateAsync(Arg.Any<City>(), Arg.Any<CancellationToken>());
     }
@@ -216,7 +216,7 @@ public class CityServiceTests
         // Assert
         result.ShouldBeFailure(
             ErrorKind.Conflict,
-            "Já existe outra cidade cadastrada com o nome 'Betim' no estado 'MG'.");
+            "Já existe uma cidade cadastrada com este nome.");
 
         await _cityRepository.DidNotReceive().UpdateAsync(Arg.Any<City>(), Arg.Any<CancellationToken>());
     }
@@ -241,5 +241,41 @@ public class CityServiceTests
         _cityFactory.Received(1).Update(city, request.Name, "MG", false);
         await _cityRepository.Received(1).UpdateAsync(city, Arg.Any<CancellationToken>());
         result.ShouldBeSuccess().Id.Should().Be(id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ComCidadeExistente_DeveRetornarCidade()
+    {
+        var city = City.Create("city-1", "Betim", "betim", "MG");
+        _cityRepository.GetByIdAsync("city-1", Arg.Any<CancellationToken>()).Returns(city);
+
+        var result = await _sut.GetByIdAsync("city-1");
+
+        result.ShouldBeSuccess().Name.Should().Be("Betim");
+    }
+
+    [Fact]
+    public async Task ActivateAsync_DeveAtivarCidade()
+    {
+        var city = City.Create("city-1", "Betim", "betim", "MG");
+        city.Deactivate();
+        _cityRepository.GetByIdAsync("city-1", Arg.Any<CancellationToken>()).Returns(city);
+
+        var result = await _sut.ActivateAsync("city-1");
+
+        result.ShouldBeSuccess().IsActive.Should().BeTrue();
+        await _cityRepository.Received(1).UpdateAsync(city, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task DeactivateAsync_DeveInativarCidade()
+    {
+        var city = City.Create("city-1", "Betim", "betim", "MG");
+        _cityRepository.GetByIdAsync("city-1", Arg.Any<CancellationToken>()).Returns(city);
+
+        var result = await _sut.DeactivateAsync("city-1");
+
+        result.ShouldBeSuccess().IsActive.Should().BeFalse();
+        await _cityRepository.Received(1).UpdateAsync(city, Arg.Any<CancellationToken>());
     }
 }

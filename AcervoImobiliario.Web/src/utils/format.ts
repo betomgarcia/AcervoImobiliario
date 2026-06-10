@@ -1,5 +1,4 @@
-import { ComplementType } from '@/types/api';
-import { complementTypeLabels } from '@/utils/labels';
+import type { PropertyResponse } from '@/types/api';
 
 export function formatAddress(
   street: string,
@@ -10,14 +9,12 @@ export function formatAddress(
   return `${street}, ${number} — ${neighborhood}, ${cityName}`;
 }
 
-export function formatFullPropertyAddress(property: {
-  street: string;
-  number: string;
-  neighborhood: string;
-  cityNameSnapshot: string;
-  complementType: ComplementType;
-  complementValue: string | null;
-}): string {
+export function formatFullPropertyAddress(
+  property: Pick<
+    PropertyResponse,
+    'street' | 'number' | 'neighborhood' | 'cityNameSnapshot' | 'complement'
+  >,
+): string {
   const base = formatAddress(
     property.street,
     property.number,
@@ -25,13 +22,11 @@ export function formatFullPropertyAddress(property: {
     property.cityNameSnapshot,
   );
 
-  if (property.complementType === ComplementType.None) {
+  if (!property.complement?.trim()) {
     return base;
   }
 
-  const complement = complementTypeLabels[property.complementType];
-  const value = property.complementValue ? ` ${property.complementValue}` : '';
-  return `${base} — ${complement}${value}`;
+  return `${base} — ${property.complement}`;
 }
 
 export function summarizeText(text: string, maxLength = 120): string {

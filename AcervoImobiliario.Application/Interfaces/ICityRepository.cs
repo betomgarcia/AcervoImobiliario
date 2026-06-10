@@ -1,3 +1,4 @@
+using AcervoImobiliario.Application.DTOs.Cities;
 using AcervoImobiliario.Domain.Entities;
 
 namespace AcervoImobiliario.Application.Interfaces;
@@ -11,9 +12,14 @@ public interface ICityRepository
         string state,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<City>> ListAsync(
+        string? nameNormalized,
+        CityStatusFilter status,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<City>> ListActiveAsync(CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<City>> SearchByNameNormalizedAsync(
+    Task<IReadOnlyList<City>> SearchActiveByNameNormalizedAsync(
         string termNormalized,
         CancellationToken cancellationToken = default);
 

@@ -13,39 +13,60 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
-      includeAssets: ['favicon.svg'],
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      includeAssets: [
+        'favicon.svg',
+        'favicon.png',
+        'favicon-32x32.png',
+        'apple-touch-icon.png',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+      ],
       manifest: {
+        id: '/',
         name: 'Acervo Imobiliário',
         short_name: 'Acervo',
         description: 'Cadastro e histórico de imóveis por endereço único.',
-        theme_color: '#0D47A1',
+        lang: 'pt-BR',
+        dir: 'ltr',
+        theme_color: '#0054B3',
         background_color: '#F4F7FB',
         display: 'standalone',
+        orientation: 'portrait-primary',
         start_url: '/',
+        scope: '/',
+        categories: ['business', 'productivity'],
         icons: [
           {
-            src: 'favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
             purpose: 'any',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https?:\/\/localhost:5219\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+        navigateFallback: 'index.html',
+        runtimeCaching: [],
+        cleanupOutdatedCaches: true,
       },
-      devOptions: { enabled: false },
+      devOptions: {
+        enabled: false,
+      },
     }),
   ],
   server: {

@@ -1,17 +1,4 @@
-import { ComplementType, PropertyHistoryEventType } from '@/types/api';
-
-export const complementTypeLabels: Record<ComplementType, string> = {
-  [ComplementType.None]: 'Sem complemento',
-  [ComplementType.Apartment]: 'Apartamento',
-  [ComplementType.Room]: 'Sala',
-  [ComplementType.Store]: 'Loja',
-  [ComplementType.House]: 'Casa',
-  [ComplementType.Block]: 'Bloco',
-  [ComplementType.Lot]: 'Lote',
-  [ComplementType.Floor]: 'Andar',
-  [ComplementType.ParkingSpace]: 'Vaga',
-  [ComplementType.Other]: 'Outro',
-};
+import { PropertyHistoryEventType } from '@/types/api';
 
 export const historyEventTypeLabels: Record<PropertyHistoryEventType, string> = {
   [PropertyHistoryEventType.Sale]: 'Venda',

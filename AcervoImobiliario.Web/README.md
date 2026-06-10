@@ -55,6 +55,30 @@ Acesse: http://localhost:5173
 4. Histórico em timeline/cards expansíveis
 5. Cadastro de evento no histórico
 
+## PWA
+
+O app está configurado como **Progressive Web App**:
+
+- **Nome:** Acervo Imobiliário | **Short name:** Acervo
+- **Ícones:** 192×192, 512×512 e `apple-touch-icon` (180×180)
+- **Instalação:** Android (prompt nativo) e iPhone (instruções via “Adicionar à Tela de Início”)
+- **Offline:** não há cache de API nem uso offline completo — apenas shell estático para instalação
+
+Gerar ícones a partir do SVG:
+
+```bash
+npm run generate:icons
+```
+
+Testar instalação em produção:
+
+```bash
+npm run build
+npm run preview
+```
+
+Acesse via HTTPS ou `localhost` no Chrome/Edge (Android) ou Safari (iPhone).
+
 ## Build
 
 ```bash

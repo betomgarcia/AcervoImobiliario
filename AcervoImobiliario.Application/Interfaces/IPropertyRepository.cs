@@ -1,6 +1,5 @@
 using AcervoImobiliario.Application.DTOs.Properties;
 using AcervoImobiliario.Domain.Entities;
-using AcervoImobiliario.Domain.Enums;
 
 namespace AcervoImobiliario.Application.Interfaces;
 
@@ -13,8 +12,7 @@ public interface IPropertyRepository
         string neighborhoodNormalized,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValueNormalized,
+        string complementNormalized,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Property>> ListAsync(CancellationToken cancellationToken = default);

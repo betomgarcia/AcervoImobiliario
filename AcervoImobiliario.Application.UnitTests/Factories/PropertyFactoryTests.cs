@@ -1,18 +1,16 @@
 using AcervoImobiliario.Application.Factories;
 using AcervoImobiliario.Application.Services;
-using AcervoImobiliario.Domain.Enums;
 using FluentAssertions;
 
 namespace AcervoImobiliario.Application.UnitTests.Factories;
 
 public class PropertyFactoryTests
 {
-    private readonly PropertyFactory _sut = new(new TextNormalizer());
+    private readonly PropertyFactory _sut = new(new TextNormalizer(), new AddressNormalizationService());
 
     [Fact]
     public void Create_ComEnderecoValido_DeveNormalizarCamposDeTexto()
     {
-        // Act
         var property = _sut.Create(
             "property-1",
             "city-1",
@@ -20,47 +18,40 @@ public class PropertyFactoryTests
             "  Centro  ",
             "  Rua das Flores ",
             "100",
-            ComplementType.Apartment,
-            "  Apto  12 ");
+            "  Apartamento  303 Bloco A ");
 
-        // Assert
         property.NeighborhoodNormalized.Should().Be("centro");
         property.StreetNormalized.Should().Be("rua das flores");
-        property.ComplementValueNormalized.Should().Be("apto 12");
+        property.Complement.Should().Be("Apartamento  303 Bloco A");
+        property.ComplementNormalized.Should().Be("APT 303 BLOCO A");
     }
 
     [Fact]
-    public void Create_ComComplementTypeNone_NaoDeveDefinirComplementValueNormalized()
+    public void Create_SemComplemento_NaoDeveDefinirComplement()
     {
-        // Act
         var property = _sut.Create(
             "property-1",
             "city-1",
             "Belo Horizonte",
             "Centro",
             "Rua A",
-            "100",
-            ComplementType.None);
+            "100");
 
-        // Assert
-        property.ComplementValue.Should().BeNull();
-        property.ComplementValueNormalized.Should().BeNull();
+        property.Complement.Should().BeNull();
+        property.ComplementNormalized.Should().BeEmpty();
     }
 
     [Fact]
     public void UpdateAddress_ComNovosDados_DeveNormalizarCamposEAtualizarIsActive()
     {
-        // Arrange
         var property = _sut.Create(
             "property-1",
             "city-1",
             "Belo Horizonte",
             "Centro",
             "Rua A",
-            "100",
-            ComplementType.None);
+            "100");
 
-        // Act
         _sut.UpdateAddress(
             property,
             "city-2",
@@ -68,17 +59,15 @@ public class PropertyFactoryTests
             "  Savassi ",
             "  Rua Pernambuco ",
             "200",
-            ComplementType.Apartment,
             "  Apto 3 ",
             "IDX-2",
             isActive: false);
 
-        // Assert
         property.CityId.Should().Be("city-2");
         property.CityNameSnapshot.Should().Be("Contagem");
         property.NeighborhoodNormalized.Should().Be("savassi");
         property.StreetNormalized.Should().Be("rua pernambuco");
-        property.ComplementValueNormalized.Should().Be("apto 3");
+        property.ComplementNormalized.Should().Be("APT 3");
         property.IsActive.Should().BeFalse();
         property.UpdatedAt.Should().NotBeNull();
     }

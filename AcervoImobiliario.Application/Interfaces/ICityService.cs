@@ -5,7 +5,15 @@ namespace AcervoImobiliario.Application.Interfaces;
 
 public interface ICityService
 {
+    Task<Result<IReadOnlyList<CityResponse>>> ListAsync(
+        ListCitiesQuery query,
+        CancellationToken cancellationToken = default);
+
     Task<Result<IReadOnlyList<CityResponse>>> ListActiveAsync(CancellationToken cancellationToken = default);
+
+    Task<Result<CityResponse>> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
 
     Task<Result<IReadOnlyList<CityResponse>>> SearchAsync(
         string term,
@@ -18,5 +26,13 @@ public interface ICityService
     Task<Result<CityResponse>> UpdateAsync(
         string id,
         UpdateCityRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<CityResponse>> ActivateAsync(
+        string id,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<CityResponse>> DeactivateAsync(
+        string id,
         CancellationToken cancellationToken = default);
 }

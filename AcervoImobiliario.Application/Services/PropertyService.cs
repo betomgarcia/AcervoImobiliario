@@ -1,10 +1,10 @@
 using AcervoImobiliario.Application.Common;
 using AcervoImobiliario.Application.DTOs.Properties;
-using AcervoImobiliario.Application.Factories;
 using AcervoImobiliario.Application.Interfaces;
+using AcervoImobiliario.Application.Factories;
 using AcervoImobiliario.Application.Mappings;
 using AcervoImobiliario.Application.Validators;
-using AcervoImobiliario.Domain.Enums;
+using AcervoImobiliario.Domain.Entities;
 
 namespace AcervoImobiliario.Application.Services;
 
@@ -14,17 +14,20 @@ public sealed class PropertyService : IPropertyService
     private readonly ICityRepository _cityRepository;
     private readonly IPropertyFactory _propertyFactory;
     private readonly ITextNormalizer _textNormalizer;
+    private readonly IAddressNormalizationService _addressNormalizationService;
 
     public PropertyService(
         IPropertyRepository propertyRepository,
         ICityRepository cityRepository,
         IPropertyFactory propertyFactory,
-        ITextNormalizer textNormalizer)
+        ITextNormalizer textNormalizer,
+        IAddressNormalizationService addressNormalizationService)
     {
         _propertyRepository = propertyRepository;
         _cityRepository = cityRepository;
         _propertyFactory = propertyFactory;
         _textNormalizer = textNormalizer;
+        _addressNormalizationService = addressNormalizationService;
     }
 
     public async Task<Result<IReadOnlyList<PropertyResponse>>> SearchAsync(
@@ -73,13 +76,18 @@ public sealed class PropertyService : IPropertyService
             return Result<PropertyResponse>.NotFound($"Cidade '{request.CityId}' não encontrada.");
         }
 
+        var cityValidation = ValidateCityForPropertyRegistration(city);
+        if (!cityValidation.IsSuccess)
+        {
+            return Result<PropertyResponse>.From(cityValidation);
+        }
+
         var uniqueness = await EnsureAddressIsUniqueAsync(
             request.CityId,
             request.Neighborhood,
             request.Street,
             request.Number,
-            request.ComplementType,
-            request.ComplementValue,
+            request.Complement,
             excludedPropertyId: null,
             cancellationToken);
 
@@ -95,8 +103,7 @@ public sealed class PropertyService : IPropertyService
             request.Neighborhood,
             request.Street,
             request.Number,
-            request.ComplementType,
-            request.ComplementValue,
+            request.Complement,
             request.CadastralIndex);
 
         await _propertyRepository.CreateAsync(property, cancellationToken);
@@ -127,13 +134,18 @@ public sealed class PropertyService : IPropertyService
             return Result<PropertyResponse>.NotFound($"Cidade '{request.CityId}' não encontrada.");
         }
 
+        var cityValidation = ValidateCityForPropertyRegistration(city, property.CityId);
+        if (!cityValidation.IsSuccess)
+        {
+            return Result<PropertyResponse>.From(cityValidation);
+        }
+
         var uniqueness = await EnsureAddressIsUniqueAsync(
             request.CityId,
             request.Neighborhood,
             request.Street,
             request.Number,
-            request.ComplementType,
-            request.ComplementValue,
+            request.Complement,
             excludedPropertyId: property.Id,
             cancellationToken);
 
@@ -149,8 +161,7 @@ public sealed class PropertyService : IPropertyService
             request.Neighborhood,
             request.Street,
             request.Number,
-            request.ComplementType,
-            request.ComplementValue,
+            request.Complement,
             request.CadastralIndex,
             request.IsActive);
 
@@ -159,27 +170,41 @@ public sealed class PropertyService : IPropertyService
         return Result<PropertyResponse>.Success(PropertyMapper.ToResponse(property));
     }
 
+    private static Result ValidateCityForPropertyRegistration(City city, string? existingCityId = null)
+    {
+        if (city.IsActive)
+        {
+            return Result.Success();
+        }
+
+        if (!string.IsNullOrWhiteSpace(existingCityId) && city.Id == existingCityId)
+        {
+            return Result.Success();
+        }
+
+        return Result.ValidationFailure(
+            "A cidade selecionada está inativa e não pode ser usada em novos cadastros.");
+    }
+
     private async Task<Result> EnsureAddressIsUniqueAsync(
         string cityId,
         string neighborhood,
         string street,
         string number,
-        ComplementType complementType,
-        string? complementValue,
+        string? complement,
         string? excludedPropertyId,
         CancellationToken cancellationToken)
     {
         var neighborhoodNormalized = _textNormalizer.Normalize(neighborhood);
         var streetNormalized = _textNormalizer.Normalize(street);
-        var complementValueNormalized = NormalizeComplementValue(complementType, complementValue);
+        var complementNormalized = NormalizeComplementForSearch(complement);
 
         var existingProperty = await _propertyRepository.GetByUniqueAddressAsync(
             cityId.Trim(),
             neighborhoodNormalized,
             streetNormalized,
             number.Trim(),
-            complementType,
-            complementValueNormalized,
+            complementNormalized,
             cancellationToken);
 
         if (existingProperty is not null && existingProperty.Id != excludedPropertyId)
@@ -211,22 +236,18 @@ public sealed class PropertyService : IPropertyService
                 ? null
                 : _textNormalizer.Normalize(query.Street),
             Number = string.IsNullOrWhiteSpace(query.Number) ? null : query.Number.Trim(),
-            ComplementType = query.ComplementType,
-            ComplementValueNormalized = query.ComplementType.HasValue && query.ComplementValue is not null
-                ? _textNormalizer.Normalize(query.ComplementValue)
+            ComplementNormalized = HasComplementFilter(query.Complement)
+                ? NormalizeComplementForSearch(query.Complement)
                 : null,
             ActiveOnly = !query.IncludeInactive
         };
     }
 
-    private string? NormalizeComplementValue(ComplementType complementType, string? complementValue)
-    {
-        if (complementType == ComplementType.None || string.IsNullOrWhiteSpace(complementValue))
-        {
-            return null;
-        }
+    private string NormalizeComplementForSearch(string? complement) =>
+        string.IsNullOrWhiteSpace(complement)
+            ? string.Empty
+            : _addressNormalizationService.NormalizeComplement(complement);
 
-        var normalized = _textNormalizer.Normalize(complementValue);
-        return string.IsNullOrEmpty(normalized) ? null : normalized;
-    }
+    private static bool HasComplementFilter(string? complement) =>
+        complement is not null;
 }

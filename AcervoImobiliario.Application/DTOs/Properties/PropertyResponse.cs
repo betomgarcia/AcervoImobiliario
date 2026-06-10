@@ -1,5 +1,3 @@
-using AcervoImobiliario.Domain.Enums;
-
 namespace AcervoImobiliario.Application.DTOs.Properties;
 
 public sealed record PropertyResponse(
@@ -11,9 +9,8 @@ public sealed record PropertyResponse(
     string Street,
     string StreetNormalized,
     string Number,
-    ComplementType ComplementType,
-    string? ComplementValue,
-    string? ComplementValueNormalized,
+    string? Complement,
+    string ComplementNormalized,
     string? CadastralIndex,
     bool IsActive,
     DateTime CreatedAt,

@@ -1,16 +1,19 @@
 using AcervoImobiliario.Application.Interfaces;
 using AcervoImobiliario.Domain.Entities;
-using AcervoImobiliario.Domain.Enums;
 
 namespace AcervoImobiliario.Application.Factories;
 
 public sealed class PropertyFactory : IPropertyFactory
 {
     private readonly ITextNormalizer _textNormalizer;
+    private readonly IAddressNormalizationService _addressNormalizationService;
 
-    public PropertyFactory(ITextNormalizer textNormalizer)
+    public PropertyFactory(
+        ITextNormalizer textNormalizer,
+        IAddressNormalizationService addressNormalizationService)
     {
         _textNormalizer = textNormalizer;
+        _addressNormalizationService = addressNormalizationService;
     }
 
     public Property Create(
@@ -20,10 +23,11 @@ public sealed class PropertyFactory : IPropertyFactory
         string neighborhood,
         string street,
         string number,
-        ComplementType complementType,
-        string? complementValue = null,
+        string? complement = null,
         string? cadastralIndex = null)
     {
+        var (trimmedComplement, complementNormalized) = NormalizeComplementFields(complement);
+
         return Property.Create(
             id,
             cityId,
@@ -33,9 +37,8 @@ public sealed class PropertyFactory : IPropertyFactory
             street,
             _textNormalizer.Normalize(street),
             number,
-            complementType,
-            complementValue,
-            NormalizeComplementValue(complementType, complementValue),
+            trimmedComplement,
+            complementNormalized,
             cadastralIndex);
     }
 
@@ -46,11 +49,12 @@ public sealed class PropertyFactory : IPropertyFactory
         string neighborhood,
         string street,
         string number,
-        ComplementType complementType,
-        string? complementValue,
+        string? complement,
         string? cadastralIndex,
         bool isActive)
     {
+        var (trimmedComplement, complementNormalized) = NormalizeComplementFields(complement);
+
         property.UpdateAddress(
             cityId,
             cityNameSnapshot,
@@ -59,21 +63,21 @@ public sealed class PropertyFactory : IPropertyFactory
             street,
             _textNormalizer.Normalize(street),
             number,
-            complementType,
-            complementValue,
-            NormalizeComplementValue(complementType, complementValue),
+            trimmedComplement,
+            complementNormalized,
             cadastralIndex,
             isActive);
     }
 
-    private string? NormalizeComplementValue(ComplementType complementType, string? complementValue)
+    private (string? Complement, string ComplementNormalized) NormalizeComplementFields(string? complement)
     {
-        if (complementType == ComplementType.None || string.IsNullOrWhiteSpace(complementValue))
+        if (string.IsNullOrWhiteSpace(complement))
         {
-            return null;
+            return (null, string.Empty);
         }
 
-        var normalized = _textNormalizer.Normalize(complementValue);
-        return string.IsNullOrEmpty(normalized) ? null : normalized;
+        var trimmed = complement.Trim();
+        var normalized = _addressNormalizationService.NormalizeComplement(trimmed);
+        return string.IsNullOrEmpty(normalized) ? (null, string.Empty) : (trimmed, normalized);
     }
 }

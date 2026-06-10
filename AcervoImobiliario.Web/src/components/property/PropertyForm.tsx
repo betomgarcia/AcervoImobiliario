@@ -1,19 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import {
   Autocomplete,
   Box,
   Button,
-  FormControl,
   Grid,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
 } from '@mui/material';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { useActiveCities, useSearchCities } from '@/hooks/useCities';
+import { CityAutocomplete } from '@/components/property/CityAutocomplete';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   useSearchNeighborhoods,
@@ -21,8 +18,6 @@ import {
   useSearchStreets,
 } from '@/hooks/useProperties';
 import { propertyFormSchema, type PropertyFormValues } from '@/schemas/propertySchema';
-import { ComplementType, type CityResponse } from '@/types/api';
-import { complementTypeLabels } from '@/utils/labels';
 
 interface PropertyFormProps {
   defaultValues?: Partial<PropertyFormValues>;
@@ -31,18 +26,12 @@ interface PropertyFormProps {
   onSubmit: (values: PropertyFormValues) => void;
 }
 
-const complementOptions = Object.entries(complementTypeLabels).map(([value, label]) => ({
-  value: Number(value) as ComplementType,
-  label,
-}));
-
 const defaultFormValues: PropertyFormValues = {
   cityId: '',
   neighborhood: '',
   street: '',
   number: '',
-  complementType: ComplementType.None,
-  complementValue: '',
+  complement: '',
   cadastralIndex: '',
 };
 
@@ -63,24 +52,16 @@ export function PropertyForm({
     defaultValues: { ...defaultFormValues, ...defaultValues },
   });
 
-  const complementType = watch('complementType');
   const cityId = watch('cityId');
   const neighborhood = watch('neighborhood');
   const street = watch('street');
 
-  const [cityInput, setCityInput] = useState('');
-  const debouncedCityInput = useDebouncedValue(cityInput);
   const [neighborhoodInput, setNeighborhoodInput] = useState('');
   const debouncedNeighborhoodInput = useDebouncedValue(neighborhoodInput);
   const [streetInput, setStreetInput] = useState('');
   const debouncedStreetInput = useDebouncedValue(streetInput);
   const [numberInput, setNumberInput] = useState('');
   const debouncedNumberInput = useDebouncedValue(numberInput);
-
-  const { data: allCities = [] } = useActiveCities();
-  const { data: searchedCities = [] } = useSearchCities(debouncedCityInput);
-
-  const cityOptions = debouncedCityInput.trim().length >= 2 ? searchedCities : allCities;
 
   const { data: neighborhoodOptions = [] } = useSearchNeighborhoods(
     cityId,
@@ -100,49 +81,28 @@ export function PropertyForm({
     debouncedNumberInput,
   );
 
-  const requiresComplementValue = [
-    ComplementType.Apartment,
-    ComplementType.Room,
-    ComplementType.Store,
-  ].includes(complementType);
-
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Grid container spacing={2}>
+      <Grid container spacing={2.5}>
         <Grid item xs={12} md={6}>
           <Controller
             name="cityId"
             control={control}
-            render={({ field }) => {
-              const selectedCity =
-                cityOptions.find((city) => city.id === field.value) ?? null;
-
-              return (
-                <Autocomplete
-                  options={cityOptions}
-                  value={selectedCity}
-                  onChange={(_, city: CityResponse | null) => {
-                    field.onChange(city?.id ?? '');
-                    setValue('neighborhood', '');
-                    setValue('street', '');
-                    setValue('number', '');
-                  }}
-                  inputValue={cityInput}
-                  onInputChange={(_, value) => setCityInput(value)}
-                  getOptionLabel={(option) => `${option.name} — ${option.state}`}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Cidade"
-                      required
-                      error={Boolean(errors.cityId)}
-                      helperText={errors.cityId?.message}
-                    />
-                  )}
-                />
-              );
-            }}
+            render={({ field }) => (
+              <CityAutocomplete
+                value={field.value}
+                onChange={(nextCityId) => {
+                  field.onChange(nextCityId);
+                  setValue('neighborhood', '');
+                  setValue('street', '');
+                  setValue('number', '');
+                }}
+                placeholder="Selecione a cidade"
+                required
+                error={Boolean(errors.cityId)}
+                helperText={errors.cityId?.message}
+              />
+            )}
           />
         </Grid>
 
@@ -166,6 +126,7 @@ export function PropertyForm({
                   <TextField
                     {...params}
                     label="Bairro"
+                    placeholder="Informe o bairro"
                     required
                     error={Boolean(errors.neighborhood)}
                     helperText={errors.neighborhood?.message}
@@ -196,6 +157,7 @@ export function PropertyForm({
                   <TextField
                     {...params}
                     label="Rua"
+                    placeholder="Informe a rua"
                     required
                     error={Boolean(errors.street)}
                     helperText={errors.street?.message}
@@ -226,6 +188,7 @@ export function PropertyForm({
                   <TextField
                     {...params}
                     label="Número"
+                    placeholder="Apenas números"
                     required
                     error={Boolean(errors.number)}
                     helperText={errors.number?.message ?? 'Somente dígitos'}
@@ -236,48 +199,17 @@ export function PropertyForm({
           />
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12}>
           <Controller
-            name="complementType"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth error={Boolean(errors.complementType)}>
-                <InputLabel>Tipo de complemento</InputLabel>
-                <Select
-                  {...field}
-                  label="Tipo de complemento"
-                  onChange={(event) => {
-                    const value = Number(event.target.value) as ComplementType;
-                    field.onChange(value);
-                    if (value === ComplementType.None) {
-                      setValue('complementValue', '');
-                    }
-                  }}
-                >
-                  {complementOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Controller
-            name="complementValue"
+            name="complement"
             control={control}
             render={({ field }) => (
               <TextField
                 {...field}
                 value={field.value ?? ''}
                 fullWidth
-                label="Valor do complemento"
-                disabled={!requiresComplementValue}
-                error={Boolean(errors.complementValue)}
-                helperText={errors.complementValue?.message}
+                label="Complemento (opcional)"
+                placeholder="Ex.: Apto 303 Bloco A, Loja 02, Casa fundos..."
               />
             )}
           />
@@ -293,14 +225,24 @@ export function PropertyForm({
                 value={field.value ?? ''}
                 fullWidth
                 label="Índice cadastral (opcional)"
+                placeholder="Informe o índice cadastral"
               />
             )}
           />
         </Grid>
       </Grid>
 
-      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
-        <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" sx={{ mt: 3 }}>
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          size="large"
+          disabled={isSubmitting}
+          startIcon={<HomeWorkIcon />}
+          fullWidth={false}
+          sx={{ minWidth: { sm: 220 } }}
+        >
           {isSubmitting ? 'Salvando...' : submitLabel}
         </Button>
       </Stack>

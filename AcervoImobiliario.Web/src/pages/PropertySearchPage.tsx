@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { LoadingState } from '@/components/common/LoadingState';
 import { PageHeader } from '@/components/common/PageHeader';
+import { usePwaInstallBottomOffset } from '@/components/pwa/PwaInstallContext';
 import {
   PropertySearchForm,
   type PropertySearchFilters,
@@ -50,6 +51,7 @@ export function PropertySearchPage() {
   const [results, setResults] = useState<PropertyResponse[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [lastFilters, setLastFilters] = useState<PropertySearchFilters | null>(null);
+  const pwaBottomOffset = usePwaInstallBottomOffset();
 
   const searchMutation = useSearchPropertiesMutation();
 
@@ -64,8 +66,7 @@ export function PropertySearchPage() {
             neighborhood: filters.neighborhood || undefined,
             street: filters.street || undefined,
             number: filters.number || undefined,
-            complementType: filters.complementType,
-            complementValue: filters.complementValue,
+            complement: filters.complement,
           };
 
     searchMutation.mutate(params, {
@@ -103,11 +104,18 @@ export function PropertySearchPage() {
       {hasSearched && !searchMutation.isPending && !searchError ? (
         results.length > 0 ? (
           <>
-            <Alert severity="success" sx={{ borderRadius: 2 }}>
+            <Alert severity="success" variant="standard" sx={{ borderRadius: 2 }}>
               Encontramos {results.length}{' '}
               {results.length === 1 ? 'imóvel' : 'imóveis'} para sua busca.
             </Alert>
-            <Grid container spacing={2}>
+            <Grid
+              container
+              spacing={2}
+              sx={{
+                pb: pwaBottomOffset > 0 ? `${pwaBottomOffset}px` : undefined,
+                transition: 'padding-bottom 0.2s ease',
+              }}
+            >
               {results.map((property) => (
                 <Grid item xs={12} md={6} lg={4} key={property.id}>
                   <PropertySearchResultCard property={property} />

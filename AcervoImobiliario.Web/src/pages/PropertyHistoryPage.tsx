@@ -2,10 +2,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SortIcon from '@mui/icons-material/Sort';
 import {
-  Box,
   Button,
-  Card,
-  CardContent,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -17,8 +14,10 @@ import { getApiErrorDetails } from '@/api/apiClient';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { LoadingState } from '@/components/common/LoadingState';
+import { PageHeader } from '@/components/common/PageHeader';
 import { HistoryTimeline } from '@/components/history/HistoryTimeline';
 import { PropertySummaryCard } from '@/components/property/PropertySummaryCard';
+import { AppCard } from '@/components/ui/AppCard';
 import { useProperty } from '@/hooks/useProperties';
 import { usePropertyHistories } from '@/hooks/usePropertyHistories';
 import type { HistorySortDirection } from '@/types/api';
@@ -56,45 +55,36 @@ export function PropertyHistoryPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ xs: 'stretch', md: 'flex-start' }}
-        spacing={2}
-      >
-        <Box>
-          <Typography variant="h4" color="primary.dark" fontWeight={700}>
-            Histórico do imóvel
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-            Linha do tempo de eventos registrados para este endereço.
-          </Typography>
-        </Box>
-
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-          <Button
-            component={RouterLink}
-            to={`/imoveis/${id}`}
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-          >
-            Voltar ao imóvel
-          </Button>
-          <Button
-            component={RouterLink}
-            to={`/imoveis/${id}/historico/novo`}
-            variant="contained"
-            startIcon={<AddIcon />}
-          >
-            Adicionar histórico
-          </Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="Histórico do imóvel"
+        subtitle="Linha do tempo de eventos registrados para este endereço."
+        action={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button
+              component={RouterLink}
+              to={`/imoveis/${id}`}
+              variant="outlined"
+              color="primary"
+              startIcon={<ArrowBackIcon />}
+            >
+              Voltar ao imóvel
+            </Button>
+            <Button
+              component={RouterLink}
+              to={`/imoveis/${id}/historico/novo`}
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+            >
+              Adicionar histórico
+            </Button>
+          </Stack>
+        }
+      />
 
       <PropertySummaryCard property={property} />
 
-      <Card>
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+      <AppCard noHover>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             justifyContent="space-between"
@@ -102,15 +92,13 @@ export function PropertyHistoryPage() {
             spacing={2}
             sx={{ mb: 3 }}
           >
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Linha do tempo
-              </Typography>
+            <div>
+              <Typography variant="h6">Linha do tempo</Typography>
               <Typography variant="body2" color="text.secondary">
                 {histories.length}{' '}
                 {histories.length === 1 ? 'evento registrado' : 'eventos registrados'}
               </Typography>
-            </Box>
+            </div>
 
             <ToggleButtonGroup
               size="small"
@@ -140,8 +128,7 @@ export function PropertyHistoryPage() {
               description="Este imóvel ainda não possui histórico. Use o botão Adicionar histórico para registrar o primeiro evento."
             />
           )}
-        </CardContent>
-      </Card>
+      </AppCard>
     </Stack>
   );
 }

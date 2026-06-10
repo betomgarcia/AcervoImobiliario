@@ -11,8 +11,7 @@ public static class SearchPropertiesQueryValidator
         var hasNeighborhood = HasValue(query.Neighborhood);
         var hasStreet = HasValue(query.Street);
         var hasNumber = HasValue(query.Number);
-        var hasComplementType = query.ComplementType.HasValue;
-        var hasComplementValue = HasValue(query.ComplementValue);
+        var hasComplement = HasValue(query.Complement);
         var hasCadastralIndex = HasValue(query.CadastralIndex);
 
         if (hasNumber && !hasCityId && !hasNeighborhood && !hasStreet && !hasCadastralIndex)
@@ -20,14 +19,9 @@ public static class SearchPropertiesQueryValidator
             return Result.ValidationFailure("Não é permitido buscar somente por number.");
         }
 
-        if (hasComplementType && !hasCityId && !hasNeighborhood && !hasStreet && !hasNumber && !hasCadastralIndex)
+        if (hasComplement && !hasCityId && !hasNeighborhood && !hasStreet && !hasNumber && !hasCadastralIndex)
         {
-            return Result.ValidationFailure("Não é permitido buscar somente por complementType.");
-        }
-
-        if (hasComplementValue && !hasComplementType)
-        {
-            return Result.ValidationFailure("Não é permitido buscar somente por complementValue.");
+            return Result.ValidationFailure("Não é permitido buscar somente por complement.");
         }
 
         if (hasNeighborhood && !hasCityId)
@@ -45,17 +39,10 @@ public static class SearchPropertiesQueryValidator
             return Result.ValidationFailure("Não é permitido buscar por number sem cityId, neighborhood e street.");
         }
 
-        if ((hasComplementType || hasComplementValue)
-            && (!hasCityId || !hasNeighborhood || !hasStreet || !hasNumber))
+        if (hasComplement && (!hasCityId || !hasNeighborhood || !hasStreet || !hasNumber))
         {
             return Result.ValidationFailure(
-                "complementType e complementValue exigem cityId, neighborhood, street e number.");
-        }
-
-        if (hasComplementType && !hasComplementValue)
-        {
-            return Result.ValidationFailure(
-                "complementValue é obrigatório quando complementType for informado na busca.");
+                "complement exige cityId, neighborhood, street e number.");
         }
 
         if (!hasCityId && !hasCadastralIndex)
@@ -63,7 +50,7 @@ public static class SearchPropertiesQueryValidator
             return Result.ValidationFailure("Informe cityId ou cadastralIndex para realizar a busca.");
         }
 
-        if (hasCadastralIndex && (hasCityId || hasNeighborhood || hasStreet || hasNumber || hasComplementType || hasComplementValue))
+        if (hasCadastralIndex && (hasCityId || hasNeighborhood || hasStreet || hasNumber || hasComplement))
         {
             return Result.ValidationFailure(
                 "A busca por cadastralIndex não pode ser combinada com outros filtros de endereço.");

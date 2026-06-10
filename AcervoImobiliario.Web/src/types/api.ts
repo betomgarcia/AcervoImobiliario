@@ -1,16 +1,3 @@
-export enum ComplementType {
-  None = 0,
-  Apartment = 1,
-  Room = 2,
-  Store = 3,
-  House = 4,
-  Block = 5,
-  Lot = 6,
-  Floor = 7,
-  ParkingSpace = 8,
-  Other = 9,
-}
-
 export enum PropertyHistoryEventType {
   Sale = 1,
   Rental = 2,
@@ -40,6 +27,24 @@ export interface CityResponse {
   updatedAt: string | null;
 }
 
+export type CityStatusFilter = 'Active' | 'Inactive' | 'All';
+
+export interface ListCitiesParams {
+  name?: string;
+  status?: CityStatusFilter;
+}
+
+export interface CreateCityRequest {
+  name: string;
+  state: string;
+}
+
+export interface UpdateCityRequest {
+  name: string;
+  state: string;
+  isActive: boolean;
+}
+
 export interface PropertyResponse {
   id: string;
   cityId: string;
@@ -49,9 +54,8 @@ export interface PropertyResponse {
   street: string;
   streetNormalized: string;
   number: string;
-  complementType: ComplementType;
-  complementValue: string | null;
-  complementValueNormalized: string | null;
+  complement: string | null;
+  complementNormalized: string;
   cadastralIndex: string | null;
   isActive: boolean;
   createdAt: string;
@@ -63,8 +67,7 @@ export interface CreatePropertyRequest {
   neighborhood: string;
   street: string;
   number: string;
-  complementType: ComplementType;
-  complementValue?: string | null;
+  complement?: string | null;
   cadastralIndex?: string | null;
 }
 
@@ -73,8 +76,7 @@ export interface UpdatePropertyRequest {
   neighborhood: string;
   street: string;
   number: string;
-  complementType: ComplementType;
-  complementValue?: string | null;
+  complement?: string | null;
   cadastralIndex?: string | null;
   isActive: boolean;
 }
@@ -99,8 +101,7 @@ export interface SearchPropertiesParams {
   neighborhood?: string;
   street?: string;
   number?: string;
-  complementType?: ComplementType;
-  complementValue?: string;
+  complement?: string;
   cadastralIndex?: string;
   includeInactive?: boolean;
 }

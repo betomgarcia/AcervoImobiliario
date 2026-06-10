@@ -17,11 +17,11 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
       sx={{ mb: 3 }}
     >
       <Box>
-        <Typography variant="h4" color="primary.dark">
+        <Typography variant="h4" component="h1">
           {title}
         </Typography>
         {subtitle ? (
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.75, maxWidth: 720 }}>
             {subtitle}
           </Typography>
         ) : null}

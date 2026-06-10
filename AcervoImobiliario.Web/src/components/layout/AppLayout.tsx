@@ -1,5 +1,6 @@
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
+import LocationCityIcon from '@mui/icons-material/LocationCity';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
 import {
@@ -18,12 +19,15 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { PageContainer } from '@/components/ui/PageContainer';
+import { tokens } from '@/theme/tokens';
 
-const drawerWidth = 260;
+const drawerWidth = tokens.layout.drawerWidth;
 
 const navItems = [
   { to: '/', label: 'Buscar imóveis', icon: <SearchIcon /> },
   { to: '/imoveis/novo', label: 'Cadastrar imóvel', icon: <HomeWorkIcon /> },
+  { to: '/cidades', label: 'Cidades', icon: <LocationCityIcon /> },
 ];
 
 export function AppLayout() {
@@ -32,13 +36,11 @@ export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const drawer = (
-    <Box sx={{ py: 2 }}>
+    <Box sx={{ py: 2.5 }}>
       <Box sx={{ px: 2.5, pb: 2 }}>
-        <Typography variant="overline" color="text.secondary">
-          Navegação
-        </Typography>
+        <Typography variant="overline">Navegação</Typography>
       </Box>
-      <List sx={{ px: 1 }}>
+      <List sx={{ px: 1.5 }}>
         {navItems.map((item) => (
           <ListItemButton
             key={item.to}
@@ -47,18 +49,32 @@ export function AppLayout() {
             end={item.to === '/'}
             onClick={() => setMobileOpen(false)}
             sx={{
-              mx: 1,
-              mb: 0.5,
-              borderRadius: 2,
+              mx: 0.5,
+              mb: 0.75,
+              py: 1.35,
+              borderRadius: `${tokens.radius.md}px`,
+              color: tokens.color.textPrimary,
+              transition: tokens.transition.nav,
+              '& .MuiListItemIcon-root': {
+                color: tokens.color.textSecondary,
+                transition: tokens.transition.nav,
+              },
+              '&:hover': {
+                bgcolor: tokens.color.navHover,
+              },
               '&.active': {
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
+                bgcolor: tokens.color.primary,
+                color: tokens.color.textOnPrimary,
+                '& .MuiListItemIcon-root': { color: tokens.color.textOnPrimary },
+                '&:hover': { bgcolor: tokens.color.primaryDark },
               },
             }}
           >
             <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
+            <ListItemText
+              primary={item.label}
+              primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9375rem' }}
+            />
           </ListItemButton>
         ))}
       </List>
@@ -69,23 +85,56 @@ export function AppLayout() {
     <Box sx={{ display: 'flex', minHeight: '100dvh', bgcolor: 'background.default' }}>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 60, sm: 68 }, gap: 1.5, px: { xs: 2, sm: 3 } }}>
           {isMobile ? (
-            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Abrir menu"
+              sx={{ color: tokens.color.textOnPrimary }}
+            >
               <MenuIcon />
             </IconButton>
           ) : null}
-          <ApartmentIcon sx={{ mr: 1.5 }} />
-          <Box>
-            <Typography variant="h6" component="div">
+          <ApartmentIcon
+            sx={{
+              fontSize: { xs: 28, sm: 32 },
+              flexShrink: 0,
+              color: tokens.color.accent,
+            }}
+          />
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="h6"
+              component="div"
+              noWrap
+              sx={{
+                fontSize: { xs: '1.1rem', sm: '1.3rem' },
+                fontWeight: 700,
+                lineHeight: 1.25,
+                color: tokens.color.textOnPrimary,
+              }}
+            >
               Acervo Imobiliário
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+            <Typography
+              component="p"
+              variant="body2"
+              sx={{
+                mt: 0.25,
+                fontWeight: 500,
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                lineHeight: 1.35,
+                color: tokens.color.textAccentOnPrimary,
+              }}
+            >
               Endereço único e histórico de eventos
             </Typography>
           </Box>
@@ -102,13 +151,10 @@ export function AppLayout() {
             '& .MuiDrawer-paper': {
               width: drawerWidth,
               boxSizing: 'border-box',
-              borderRight: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
             },
           }}
         >
-          <Toolbar />
+          <Toolbar sx={{ minHeight: { xs: 60, sm: 68 } }} />
           {drawer}
         </Drawer>
       </Box>
@@ -118,12 +164,15 @@ export function AppLayout() {
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          px: { xs: 2, sm: 3, md: 4 },
-          py: 3,
+          px: { xs: 1.5, sm: 2.5, md: 3 },
+          py: { xs: 2, md: 3 },
+          pb: `calc(${theme.spacing(2.5)} + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        <Toolbar />
-        <Outlet />
+        <Toolbar sx={{ minHeight: { xs: 60, sm: 68 } }} />
+        <PageContainer>
+          <Outlet />
+        </PageContainer>
       </Box>
     </Box>
   );

@@ -2,8 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   FormControl,
   Grid,
   InputLabel,
@@ -19,6 +17,9 @@ import { getApiErrorDetails } from '@/api/apiClient';
 import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { QueryState } from '@/components/common/QueryState';
 import { PageHeader } from '@/components/common/PageHeader';
+import { PropertySummaryCard } from '@/components/property/PropertySummaryCard';
+import { AppCard } from '@/components/ui/AppCard';
+import { InfoAlert } from '@/components/ui/InfoAlert';
 import { useProperty } from '@/hooks/useProperties';
 import { useCreatePropertyHistory } from '@/hooks/usePropertyHistories';
 import { historyFormSchema, type HistoryFormValues } from '@/schemas/historySchema';
@@ -68,7 +69,7 @@ export function PropertyHistoryCreatePage() {
       {(property) => (
         <Stack spacing={3}>
           <PageHeader
-            title="Registrar evento"
+            title="Adicionar histórico"
             subtitle={formatAddress(
               property.street,
               property.number,
@@ -77,30 +78,35 @@ export function PropertyHistoryCreatePage() {
             )}
           />
 
+          <PropertySummaryCard property={property} />
+
           {apiError ? (
             <ErrorAlert message={apiError.message} errors={apiError.errors} />
           ) : null}
 
-          <Card>
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              <HistoryForm
-                control={control}
-                errors={errors}
-                isSubmitting={createMutation.isPending}
-                onSubmit={handleSubmit((values) =>
-                  createMutation.mutate(
-                    {
-                      eventType: values.eventType,
-                      eventDate: fromIsoDateTimeLocal(values.eventDate),
-                      description: values.description.trim(),
-                    },
-                    { onSuccess: () => navigate(`/imoveis/${id}/historico`) },
-                  ),
-                )}
-                propertyId={id}
-              />
-            </CardContent>
-          </Card>
+          <AppCard noHover>
+            <InfoAlert sx={{ mb: 3 }}>
+              Históricos não podem ser editados ou apagados. Em caso de erro, registre uma
+              correção.
+            </InfoAlert>
+
+            <HistoryForm
+              control={control}
+              errors={errors}
+              isSubmitting={createMutation.isPending}
+              onSubmit={handleSubmit((values) =>
+                createMutation.mutate(
+                  {
+                    eventType: values.eventType,
+                    eventDate: fromIsoDateTimeLocal(values.eventDate),
+                    description: values.description.trim(),
+                  },
+                  { onSuccess: () => navigate(`/imoveis/${id}/historico`) },
+                ),
+              )}
+              propertyId={id}
+            />
+          </AppCard>
         </Stack>
       )}
     </QueryState>
@@ -122,15 +128,15 @@ function HistoryForm({
 }) {
   return (
     <Box component="form" onSubmit={onSubmit} noValidate>
-      <Grid container spacing={2}>
+      <Grid container spacing={2.5}>
         <Grid item xs={12} md={4}>
           <Controller
             name="eventType"
             control={control}
             render={({ field }) => (
               <FormControl fullWidth error={Boolean(errors.eventType)}>
-                <InputLabel>Tipo de evento</InputLabel>
-                <Select {...field} label="Tipo de evento">
+                <InputLabel>Tipo do evento</InputLabel>
+                <Select {...field} label="Tipo do evento">
                   {eventTypeOptions.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
@@ -169,8 +175,9 @@ function HistoryForm({
                 {...field}
                 fullWidth
                 multiline
-                minRows={4}
+                minRows={5}
                 label="Descrição"
+                placeholder="Descreva o que aconteceu neste evento..."
                 error={Boolean(errors.description)}
                 helperText={errors.description?.message}
               />
@@ -181,15 +188,20 @@ function HistoryForm({
 
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
+        spacing={1.5}
         justifyContent="flex-end"
         sx={{ mt: 3 }}
       >
-        <Button component={RouterLink} to={`/imoveis/${propertyId}/historico`} variant="outlined">
+        <Button
+          component={RouterLink}
+          to={`/imoveis/${propertyId}/historico`}
+          variant="outlined"
+          color="primary"
+        >
           Cancelar
         </Button>
-        <Button type="submit" variant="contained" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvando...' : 'Registrar evento'}
+        <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+          {isSubmitting ? 'Salvando...' : 'Salvar histórico'}
         </Button>
       </Stack>
     </Box>

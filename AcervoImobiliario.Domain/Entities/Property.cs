@@ -1,4 +1,3 @@
-using AcervoImobiliario.Domain.Enums;
 using AcervoImobiliario.Domain.Exceptions;
 
 namespace AcervoImobiliario.Domain.Entities;
@@ -13,9 +12,8 @@ public sealed class Property
     public string Street { get; private set; }
     public string StreetNormalized { get; private set; }
     public string Number { get; private set; }
-    public ComplementType ComplementType { get; private set; }
-    public string? ComplementValue { get; private set; }
-    public string? ComplementValueNormalized { get; private set; }
+    public string? Complement { get; private set; }
+    public string ComplementNormalized { get; private set; }
     public string? CadastralIndex { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; }
@@ -30,9 +28,8 @@ public sealed class Property
         string street,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValue,
-        string? complementValueNormalized,
+        string? complement,
+        string complementNormalized,
         string? cadastralIndex,
         bool isActive,
         DateTime createdAt,
@@ -46,9 +43,8 @@ public sealed class Property
         Street = street;
         StreetNormalized = streetNormalized;
         Number = number;
-        ComplementType = complementType;
-        ComplementValue = complementValue;
-        ComplementValueNormalized = complementValueNormalized;
+        Complement = complement;
+        ComplementNormalized = complementNormalized;
         CadastralIndex = cadastralIndex;
         IsActive = isActive;
         CreatedAt = createdAt;
@@ -64,9 +60,8 @@ public sealed class Property
         string street,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValue,
-        string? complementValueNormalized,
+        string? complement,
+        string complementNormalized,
         string? cadastralIndex,
         bool isActive,
         DateTime createdAt,
@@ -80,9 +75,8 @@ public sealed class Property
             street,
             streetNormalized,
             number,
-            complementType,
-            complementValue,
-            complementValueNormalized,
+            complement,
+            complementNormalized,
             cadastralIndex,
             isActive,
             createdAt,
@@ -97,9 +91,8 @@ public sealed class Property
         string street,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValue = null,
-        string? complementValueNormalized = null,
+        string? complement = null,
+        string complementNormalized = "",
         string? cadastralIndex = null)
     {
         ValidateId(id);
@@ -110,7 +103,7 @@ public sealed class Property
         ValidateStreet(street);
         ValidateStreetNormalized(streetNormalized);
         ValidateNumber(number);
-        ValidateComplement(complementType, complementValue, complementValueNormalized);
+        ValidateComplement(complement, complementNormalized);
 
         return new Property(
             id.Trim(),
@@ -121,9 +114,8 @@ public sealed class Property
             street.Trim(),
             streetNormalized,
             number.Trim(),
-            complementType,
-            TrimComplementValue(complementType, complementValue),
-            complementValueNormalized,
+            TrimComplement(complement),
+            complementNormalized,
             cadastralIndex?.Trim(),
             isActive: true,
             createdAt: DateTime.UtcNow,
@@ -138,9 +130,8 @@ public sealed class Property
         string street,
         string streetNormalized,
         string number,
-        ComplementType complementType,
-        string? complementValue,
-        string? complementValueNormalized,
+        string? complement,
+        string complementNormalized,
         string? cadastralIndex,
         bool isActive)
     {
@@ -151,7 +142,7 @@ public sealed class Property
         ValidateStreet(street);
         ValidateStreetNormalized(streetNormalized);
         ValidateNumber(number);
-        ValidateComplement(complementType, complementValue, complementValueNormalized);
+        ValidateComplement(complement, complementNormalized);
 
         CityId = cityId.Trim();
         CityNameSnapshot = cityNameSnapshot.Trim();
@@ -160,9 +151,8 @@ public sealed class Property
         Street = street.Trim();
         StreetNormalized = streetNormalized;
         Number = number.Trim();
-        ComplementType = complementType;
-        ComplementValue = TrimComplementValue(complementType, complementValue);
-        ComplementValueNormalized = complementValueNormalized;
+        Complement = TrimComplement(complement);
+        ComplementNormalized = complementNormalized;
         CadastralIndex = cadastralIndex?.Trim();
         IsActive = isActive;
         UpdatedAt = DateTime.UtcNow;
@@ -197,21 +187,10 @@ public sealed class Property
             NeighborhoodNormalized,
             StreetNormalized,
             Number,
-            ComplementType.ToString(),
-            ComplementValueNormalized ?? string.Empty);
+            ComplementNormalized);
 
-    private static bool RequiresComplementValue(ComplementType complementType) =>
-        complementType is ComplementType.Apartment or ComplementType.Room or ComplementType.Store;
-
-    private static string? TrimComplementValue(ComplementType complementType, string? complementValue)
-    {
-        if (complementType == ComplementType.None)
-        {
-            return null;
-        }
-
-        return complementValue?.Trim();
-    }
+    private static string? TrimComplement(string? complement) =>
+        string.IsNullOrWhiteSpace(complement) ? null : complement.Trim();
 
     private static void ValidateId(string id)
     {
@@ -284,36 +263,21 @@ public sealed class Property
         }
     }
 
-    private static void ValidateComplement(
-        ComplementType complementType,
-        string? complementValue,
-        string? complementValueNormalized)
+    private static void ValidateComplement(string? complement, string complementNormalized)
     {
-        if (complementType == ComplementType.None)
-        {
-            if (!string.IsNullOrWhiteSpace(complementValue))
-            {
-                throw new DomainException("Imóveis sem complemento não devem informar ComplementValue.");
-            }
+        var hasComplement = !string.IsNullOrWhiteSpace(complement);
+        var hasNormalized = !string.IsNullOrEmpty(complementNormalized);
 
-            if (!string.IsNullOrWhiteSpace(complementValueNormalized))
-            {
-                throw new DomainException("Imóveis sem complemento não devem informar ComplementValueNormalized.");
-            }
-
-            return;
-        }
-
-        if (RequiresComplementValue(complementType) && string.IsNullOrWhiteSpace(complementValue))
+        if (!hasComplement && hasNormalized)
         {
             throw new DomainException(
-                $"ComplementValue é obrigatório para o tipo de complemento '{complementType}'.");
+                "ComplementNormalized deve ser vazio quando Complement não é informado.");
         }
 
-        if (RequiresComplementValue(complementType) && string.IsNullOrWhiteSpace(complementValueNormalized))
+        if (hasComplement && !hasNormalized)
         {
             throw new DomainException(
-                $"ComplementValueNormalized é obrigatório para o tipo de complemento '{complementType}'.");
+                "ComplementNormalized é obrigatório quando Complement é informado.");
         }
     }
 }
