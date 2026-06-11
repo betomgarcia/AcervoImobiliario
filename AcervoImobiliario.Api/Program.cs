@@ -61,8 +61,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("Frontend");
 app.UseHttpsRedirection();
+app.UseCors("Frontend");
 app.MapControllers();
 
 app.Run();
