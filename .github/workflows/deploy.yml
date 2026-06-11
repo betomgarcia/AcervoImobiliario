@@ -1,6 +1,18 @@
 # CI/CD — Acervo Imobiliário
-# develop → validate + deploy DEV (automático)
-# tag v*  → validate + deploy PRD (aprovação manual em production)
+#
+# Gatilhos:
+#   push develop  → validate + deploy-dev  (environment: development)
+#   push tag v*   → validate + deploy-prd  (environment: production, aprovação manual)
+#
+# Secrets por environment (development / production):
+#   VERCEL_PROJECT_ID, RAILWAY_TOKEN, RAILWAY_SERVICE_ID_API  (nome ou ID do serviço, ex.: acervo-api)
+# Variables por environment:
+#   RAILWAY_ENVIRONMENT, VITE_API_BASE_URL
+# Secrets do repositório:
+#   VERCEL_TOKEN, VERCEL_ORG_ID
+#
+# Frontend → Vercel | API → Railway | MongoDB → Atlas (configurado no Railway, fora deste workflow)
+
 name: Deploy
 
 on:
@@ -13,6 +25,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -100,16 +115,16 @@ jobs:
       - name: Deploy API to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          railway up \
-            --service "${{ secrets.RAILWAY_SERVICE_ID_API }}" \
-            --environment "${{ vars.RAILWAY_ENVIRONMENT }}" \
-            --detach
+          RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE_ID_API }}
+          RAILWAY_ENV: ${{ vars.RAILWAY_ENVIRONMENT }}
+        run: railway up --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENV" --detach
 
       - name: Verify API health
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
-          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health"
-          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health/ready"
+          curl --fail --show-error --silent "$API_BASE_URL/health"
+          curl --fail --show-error --silent "$API_BASE_URL/health/ready"
 
   deploy-prd:
     name: Deploy PRD
@@ -160,13 +175,13 @@ jobs:
       - name: Deploy API to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          railway up \
-            --service "${{ secrets.RAILWAY_SERVICE_ID_API }}" \
-            --environment "${{ vars.RAILWAY_ENVIRONMENT }}" \
-            --detach
+          RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE_ID_API }}
+          RAILWAY_ENV: ${{ vars.RAILWAY_ENVIRONMENT }}
+        run: railway up --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENV" --detach
 
       - name: Verify API health
+        env:
+          API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
-          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health"
-          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health/ready"
+          curl --fail --show-error --silent "$API_BASE_URL/health"
+          curl --fail --show-error --silent "$API_BASE_URL/health/ready"
