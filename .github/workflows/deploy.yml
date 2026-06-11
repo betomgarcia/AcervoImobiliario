@@ -11,7 +11,7 @@
 # Secrets do repositório:
 #   VERCEL_TOKEN, VERCEL_ORG_ID
 #
-# Frontend → Vercel (npm run build + vercel deploy dist) | API → Railway | MongoDB → Atlas
+# Frontend → Vercel (vercel pull + vercel deploy; build na infra Vercel) | API → Railway | MongoDB → Atlas
 
 name: Deploy
 
@@ -80,21 +80,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-          cache-dependency-path: AcervoImobiliario.Web/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: AcervoImobiliario.Web
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: AcervoImobiliario.Web
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: npm run build
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
+
+      - name: Pull Vercel settings
+        working-directory: .
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Deploy frontend to Vercel
         working-directory: .
@@ -102,7 +98,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel deploy AcervoImobiliario.Web/dist --prod --yes --token="$VERCEL_TOKEN"
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
 
       - name: Install Railway CLI
         run: npm install --global @railway/cli
@@ -135,21 +131,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-          cache-dependency-path: AcervoImobiliario.Web/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: AcervoImobiliario.Web
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: AcervoImobiliario.Web
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: npm run build
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
+
+      - name: Pull Vercel settings
+        working-directory: .
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Deploy frontend to Vercel
         working-directory: .
@@ -157,7 +149,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel deploy AcervoImobiliario.Web/dist --prod --yes --token="$VERCEL_TOKEN"
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
 
       - name: Install Railway CLI
         run: npm install --global @railway/cli
