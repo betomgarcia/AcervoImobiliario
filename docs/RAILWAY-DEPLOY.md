@@ -1,187 +1,119 @@
-# Deploy no Railway — Acervo Imobiliário
+# Deploy da API no Railway — Acervo Imobiliário
 
-Guia para publicar **API** e **Frontend** no Railway, usando **MongoDB Atlas** como banco.
+> **CI/CD automatizado:** [`deploy.md`](deploy.md)  
+> Este guia cobre configuração manual da **API** no Railway.
+
+---
+
+## Arquitetura
+
+| Componente | Onde roda |
+|------------|-----------|
+| **Frontend** | Vercel (`acervo-dev.arlabs.dev.br` / `acervo.arlabs.dev.br`) |
+| **API** | Railway (este guia) |
+| **MongoDB** | MongoDB Atlas (não no Railway) |
 
 ---
 
 ## Pré-requisitos
 
-- Conta no [Railway](https://railway.app)
-- Conta no [MongoDB Atlas](https://cloud.mongodb.com)
-- Repositório no GitHub com o código commitado
-- Node.js 20+ e .NET 9 SDK (apenas para validação local)
+- Conta [Railway](https://railway.app)
+- Cluster [MongoDB Atlas](https://cloud.mongodb.com) configurado
+- Repositório GitHub conectado
 
 ---
 
-## Parte 1 — MongoDB Atlas
+## MongoDB Atlas
 
-1. Acesse o Atlas → seu cluster.
-2. **Database Access** → crie ou use um usuário com leitura/escrita.
-3. **Network Access** → adicione `0.0.0.0/0` (permite Railway; restrinja depois se quiser).
-4. **Connect** → **Drivers** → copie a connection string `mongodb+srv://...`.
-5. Substitua `<password>` pela senha real (URL-encode caracteres especiais).
-6. Inclua o nome do banco na URL:
+1. **Database Access** — usuário com read/write.
+2. **Network Access** — liberar IPs do Railway (`0.0.0.0/0` inicialmente).
+3. Copiar connection string `mongodb+srv://usuario:senha@cluster...`.
 
-```
-mongodb+srv://usuario:senha@cluster0.xxxxx.mongodb.net/AcervoImobiliario?retryWrites=true&w=majority
-```
+A mesma connection string pode ser usada em DEV e PRD. A separação é por `MongoDb__DatabaseName`:
 
-> **Não commite** a connection string no Git. Configure apenas como variável no Railway.
+| Ambiente Railway | `MongoDb__DatabaseName` |
+|------------------|-------------------------|
+| `development` | `AcervoImobiliarioDev` |
+| `production` | `AcervoImobiliario` |
 
----
-
-## Parte 2 — Projeto no Railway
-
-1. Acesse [railway.app](https://railway.app) → **New Project**.
-2. Escolha **Deploy from GitHub repo**.
-3. Autorize o GitHub e selecione o repositório `AcervoImobiliario`.
-4. O Railway criará um serviço inicial — você vai configurar **dois serviços** no mesmo projeto.
+> **Não** use serviço MongoDB no Railway neste projeto.
 
 ---
 
-## Parte 3 — Serviço da API (Backend)
+## Projeto Railway
 
-### Criar / configurar o serviço
+Projeto: **Acervo Imobiliário**
 
-1. Se o Railway criou um serviço automático, renomeie para `acervo-api`.
-2. Ou clique **+ New** → **GitHub Repo** → mesmo repositório (segundo serviço).
+Dois **environments**, cada um com **apenas o serviço da API**:
 
-### Settings
+| Environment | Domínio customizado |
+|-------------|---------------------|
+| `development` | https://api-dev-acervo.arlabs.dev.br |
+| `production` | https://api-acervo.arlabs.dev.br |
+
+### Settings do serviço API
 
 | Campo | Valor |
 |-------|-------|
-| **Root Directory** | `/` (raiz do repositório) |
-| **Builder** | Dockerfile |
-| **Dockerfile Path** | `Dockerfile` |
+| Root Directory | `/` |
+| Builder | Dockerfile |
+| Health check | `/health` (via `railway.toml`) |
 
-O arquivo `railway.toml` na raiz já define health check em `/health`.
+### Variáveis — environment `development`
 
-### Variables (aba Variables)
-
-| Variável | Valor |
-|----------|-------|
-| `ASPNETCORE_ENVIRONMENT` | `Production` |
-| `ASPNETCORE_URLS` | `http://0.0.0.0:${PORT}` |
-| `MongoDb__ConnectionString` | Sua connection string do Atlas |
-| `MongoDb__DatabaseName` | `AcervoImobiliario` |
-
-Marque `MongoDb__ConnectionString` como **secret**.
-
-### Domínio público
-
-1. Aba **Settings** → **Networking** → **Generate Domain**.
-2. Anote a URL, ex.: `https://acervo-api-production.up.railway.app`.
-
-### Validar API
-
-```bash
-curl https://<sua-api>.up.railway.app/health
-```
-
-Resposta esperada:
-
-```json
-{"status":"Healthy","service":"Acervo Imobiliário API","checkedAt":"..."}
-```
-
-Teste MongoDB:
-
-```bash
-curl https://<sua-api>.up.railway.app/health/ready
-```
-
-Deve retornar `"database":"Connected"`.
-
-Teste funcional:
-
-```bash
-curl https://<sua-api>.up.railway.app/api/cities
-```
-
----
-
-## Parte 4 — Serviço do Frontend (Web)
-
-### Criar o serviço
-
-1. No mesmo projeto Railway: **+ New** → **GitHub Repo** → mesmo repositório.
-2. Renomeie para `acervo-web`.
-
-### Settings
-
-| Campo | Valor |
-|-------|-------|
-| **Root Directory** | `AcervoImobiliario.Web` |
-| **Builder** | Dockerfile |
-| **Dockerfile Path** | `Dockerfile` |
-
-### Variables
-
-| Variável | Valor | Build time? |
-|----------|-------|-------------|
-| `VITE_API_BASE_URL` | `https://<dominio-da-api>` | **Sim** ✅ |
-
-Exemplo com referência Railway (substitua o nome do serviço da API):
-
-```
-VITE_API_BASE_URL=https://${{acervo-api.RAILWAY_PUBLIC_DOMAIN}}
-```
-
-> **Importante:** `VITE_*` é embutida no build. Marque como disponível no **Build**. Se mudar a URL da API, faça **redeploy** do frontend.
-
-A URL **não** deve terminar com `/api` — o frontend já chama `/api/properties/...`.
-
-### Domínio público
-
-1. **Settings** → **Networking** → **Generate Domain**.
-2. Anote a URL, ex.: `https://acervo-web-production.up.railway.app`.
-
----
-
-## Parte 5 — CORS (ligar frontend à API)
-
-Após publicar o frontend, adicione a URL dele nas variáveis do serviço **acervo-api**:
-
-| Variável | Valor |
-|----------|-------|
-| `Cors__AllowedOrigins__0` | `https://<dominio-do-frontend>` |
-| `Cors__AllowedOrigins__1` | `http://localhost:5173` |
-
-Com referência Railway:
-
-```
-Cors__AllowedOrigins__0=https://${{acervo-web.RAILWAY_PUBLIC_DOMAIN}}
+```env
+ASPNETCORE_ENVIRONMENT=Development
+ASPNETCORE_URLS=http://0.0.0.0:${PORT}
+MongoDb__ConnectionString=<sua-connection-string-atlas>
+MongoDb__DatabaseName=AcervoImobiliarioDev
+Cors__AllowedOrigins__0=https://acervo-dev.arlabs.dev.br
 Cors__AllowedOrigins__1=http://localhost:5173
 ```
 
-Salve e aguarde o **redeploy automático** da API.
+### Variáveis — environment `production`
+
+```env
+ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_URLS=http://0.0.0.0:${PORT}
+MongoDb__ConnectionString=<sua-connection-string-atlas>
+MongoDb__DatabaseName=AcervoImobiliario
+Cors__AllowedOrigins__0=https://acervo.arlabs.dev.br
+```
+
+Marque `MongoDb__ConnectionString` como secret. Não commite no Git.
+
+### Domínio customizado
+
+**Settings → Networking → Custom Domain** → configure `api-dev-acervo.arlabs.dev.br` ou `api-acervo.arlabs.dev.br` conforme o environment.
 
 ---
 
-## Parte 6 — Ordem recomendada de deploy
+## Validar API
 
+```bash
+# DEV
+curl https://api-dev-acervo.arlabs.dev.br/health
+curl https://api-dev-acervo.arlabs.dev.br/health/ready
+curl https://api-dev-acervo.arlabs.dev.br/api/cities
+
+# PRD
+curl https://api-acervo.arlabs.dev.br/health
+curl https://api-acervo.arlabs.dev.br/health/ready
+curl https://api-acervo.arlabs.dev.br/api/cities
 ```
-1. Atlas configurado (usuário + IP + connection string)
-2. Deploy da API com MongoDb__ConnectionString
-3. Validar /health e /health/ready
-4. Deploy do frontend com VITE_API_BASE_URL apontando para a API
-5. Configurar CORS com URL do frontend
-6. Testar fluxo completo no navegador
-```
+
+`/health/ready` retorna `"database":"Connected"` quando o Atlas está acessível.
 
 ---
 
-## Checklist pós-deploy
+## Frontend (Vercel)
 
-- [ ] `GET /health` → 200
-- [ ] `GET /health/ready` → 200 e `database: Connected`
-- [ ] `GET /api/cities` → lista de cidades (seed na primeira execução)
-- [ ] Frontend abre sem erro
-- [ ] Busca de imóveis funciona (sem erro CORS no console)
-- [ ] Cadastro de cidade funciona
-- [ ] Cadastro de imóvel funciona
-- [ ] Histórico funciona
-- [ ] Connection string **não** está no Git
+O frontend **não** é publicado no Railway. Configure na Vercel:
+
+| Projeto | Domínio | `VITE_API_BASE_URL` (via CI) |
+|---------|---------|------------------------------|
+| DEV | acervo-dev.arlabs.dev.br | `https://api-dev-acervo.arlabs.dev.br` |
+| PRD | acervo.arlabs.dev.br | `https://api-acervo.arlabs.dev.br` |
 
 ---
 
@@ -189,23 +121,18 @@ Salve e aguarde o **redeploy automático** da API.
 
 | Problema | Solução |
 |----------|---------|
-| API não sobe | Verifique logs; confirme `ASPNETCORE_URLS=http://0.0.0.0:${PORT}` |
-| `/health/ready` → 503 | Connection string incorreta ou IP não liberado no Atlas |
-| Frontend chama API errada | `VITE_API_BASE_URL` incorreta ou não marcada no build |
-| Erro CORS | Adicione URL do frontend em `Cors__AllowedOrigins__0` |
-| Build frontend falha | Root Directory deve ser `AcervoImobiliario.Web` |
-| Build API falha | Root Directory deve ser `/` (raiz) |
-| Swagger 404 em produção | Esperado — Swagger só em `Development` |
+| API não sobe | `ASPNETCORE_URLS=http://0.0.0.0:${PORT}` |
+| `/health/ready` → 503 | Connection string Atlas incorreta ou IP bloqueado no Atlas |
+| Erro CORS | `Cors__AllowedOrigins__0` com URL exata do frontend Vercel |
+| Dados DEV em PRD | Verificar `MongoDb__DatabaseName` diferente em cada environment |
+| Swagger 404 em PRD | Esperado — Swagger só em `Development` |
 
 ---
 
-## Arquivos de deploy no repositório
+## Arquivos no repositório
 
-| Arquivo | Serviço |
-|---------|---------|
-| `Dockerfile` | API |
-| `railway.toml` | API |
-| `.dockerignore` | API |
-| `AcervoImobiliario.Web/Dockerfile` | Frontend |
-| `AcervoImobiliario.Web/railway.toml` | Frontend |
-| `AcervoImobiliario.Web/.dockerignore` | Frontend |
+| Arquivo | Função |
+|---------|--------|
+| `Dockerfile` | Build multi-stage .NET 9 |
+| `railway.toml` | Health check `/health` |
+| `.dockerignore` | Otimização do build |

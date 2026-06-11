@@ -554,41 +554,95 @@ sequenceDiagram
 
 ---
 
+## CI/CD e Ambientes
+
+| Plataforma | Responsabilidade |
+|------------|------------------|
+| **Vercel** | Frontend |
+| **Railway** | API .NET 9 |
+| **MongoDB Atlas** | Banco de dados (mesmo cluster; databases separados) |
+
+| Ambiente | Frontend | API | Database (Atlas) |
+|----------|----------|-----|------------------|
+| **DEV** | https://acervo-dev.arlabs.dev.br | https://api-dev-acervo.arlabs.dev.br | `AcervoImobiliarioDev` |
+| **PRD** | https://acervo.arlabs.dev.br | https://api-acervo.arlabs.dev.br | `AcervoImobiliario` |
+
+### Como publicar
+
+**DEV** — push na branch `develop`:
+
+```bash
+git push origin develop
+```
+
+**PRD** — tag `v*` (com aprovação manual):
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+| Gatilho | O que acontece |
+|---------|----------------|
+| Push em `develop` | Validate + Deploy DEV (automático) |
+| Tag `v*` | Validate + Deploy PRD (aprovação em `production`) |
+| Push em `main` | Nenhum deploy automático |
+
+Workflow: `.github/workflows/deploy.yml` — guia completo: [`docs/deploy.md`](docs/deploy.md)
+
+### Aprovar produção
+
+GitHub → **Actions** → job **Deploy PRD** → **Review deployments** → **Approve**.
+
+### Secrets (resumo)
+
+**Repositório:** `VERCEL_TOKEN`, `VERCEL_ORG_ID`
+
+**Por environment** (`development` / `production`):
+
+| Nome | Tipo |
+|------|------|
+| `VERCEL_PROJECT_ID` | Secret |
+| `RAILWAY_TOKEN` | Secret |
+| `RAILWAY_SERVICE_ID_API` | Secret |
+| `VITE_API_BASE_URL` | Variable |
+| `RAILWAY_ENVIRONMENT` | Variable |
+
+---
+
 ## Publicação
 
-> Guia completo de deploy no Railway (API + Frontend + MongoDB Atlas): [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md)
+> Deploy manual / referência Railway: [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md)  
+> CI/CD automatizado: [`docs/deploy.md`](docs/deploy.md)
 
-### Backend (API)
-
-| Item | Configuração |
-|------|--------------|
-| **Runtime** | .NET 9 |
-| **Comando de start** | `dotnet AcervoImobiliario.Api.dll` |
-| **Porta** | Definida pela plataforma via `ASPNETCORE_URLS` ou variável `PORT` |
-| **Banco** | MongoDB (Atlas recomendado em produção) |
-| **Variáveis obrigatórias** | `MongoDb__ConnectionString`, `ASPNETCORE_ENVIRONMENT=Production` |
-| **CORS** | Configurável via `Cors__AllowedOrigins__N` (ver guia Railway) |
-
-### Frontend (Web)
+### Backend (API) — Railway
 
 | Item | Configuração |
 |------|--------------|
-| **Build** | `npm run build` (gera `dist/`) |
-| **Variável obrigatória** | `VITE_API_BASE_URL=<url-da-api-em-producao>` |
-| **Tipo de deploy** | Site estático (Vite) ou PWA |
-| **Preview local** | `npm run preview` |
+| **Runtime** | .NET 9 (`Dockerfile` na raiz) |
+| **DEV** | https://api-dev-acervo.arlabs.dev.br |
+| **PRD** | https://api-acervo.arlabs.dev.br |
+| **Variáveis** | `MongoDb__ConnectionString`, `MongoDb__DatabaseName`, `Cors__AllowedOrigins__N` |
 
-### MongoDB
+### Frontend (Web) — Vercel
 
 | Item | Configuração |
 |------|--------------|
-| **Local** | `docker compose up -d` |
-| **Produção** | MongoDB Atlas ou serviço gerenciado compatível |
-| **Índices** | Criados automaticamente na inicialização da API |
+| **Build** | `npm run build` → `dist/` |
+| **DEV** | https://acervo-dev.arlabs.dev.br |
+| **PRD** | https://acervo.arlabs.dev.br |
+| **Variável** | `VITE_API_BASE_URL` (injetada no CI) |
 
-### Railway
+### MongoDB — Atlas
 
-O repositório inclui `Dockerfile`, `railway.toml` e health check em `/health`. Siga o passo a passo em [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md).
+| Ambiente | `MongoDb__DatabaseName` |
+|----------|-------------------------|
+| DEV | `AcervoImobiliarioDev` |
+| PRD | `AcervoImobiliario` |
+
+Mesmo cluster Atlas; connection string configurada no Railway por environment. Local: `docker compose up -d` + `AcervoImobiliarioDev`.
+
+Guia API Railway: [`docs/RAILWAY-DEPLOY.md`](docs/RAILWAY-DEPLOY.md)
 
 ---
 
@@ -615,7 +669,7 @@ Melhorias futuras planejadas (não implementadas nesta versão):
 - [ ] **Dashboard** com indicadores do acervo
 - [ ] **Relatórios** exportáveis (PDF/Excel)
 - [ ] **Tela de edição de imóvel** no frontend (API já disponível)
-- [ ] **CI/CD** automatizado (build, testes e deploy)
+- [x] **CI/CD** automatizado (build, testes e deploy por tag `v*`)
 - [ ] **Cache offline** da API no PWA
 
 ---

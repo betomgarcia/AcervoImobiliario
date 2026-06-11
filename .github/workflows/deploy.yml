@@ -1,0 +1,172 @@
+# CI/CD — Acervo Imobiliário
+# develop → validate + deploy DEV (automático)
+# tag v*  → validate + deploy PRD (aprovação manual em production)
+name: Deploy
+
+on:
+  push:
+    branches:
+      - develop
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: AcervoImobiliario.Web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: AcervoImobiliario.Web
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: AcervoImobiliario.Web
+        run: npm run build
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore backend
+        run: dotnet restore AcervoImobiliario.sln
+
+      - name: Build backend
+        run: dotnet build AcervoImobiliario.sln --configuration Release --no-restore
+
+      - name: Test backend
+        run: dotnet test AcervoImobiliario.sln --configuration Release --no-build --verbosity normal
+
+  deploy-dev:
+    name: Deploy DEV
+    needs: validate
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel settings
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build frontend
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy frontend to Vercel
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Deploy API to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up \
+            --service "${{ secrets.RAILWAY_SERVICE_ID_API }}" \
+            --environment "${{ vars.RAILWAY_ENVIRONMENT }}" \
+            --detach
+
+      - name: Verify API health
+        run: |
+          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health"
+          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health/ready"
+
+  deploy-prd:
+    name: Deploy PRD
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel settings
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build frontend
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy frontend to Vercel
+        working-directory: AcervoImobiliario.Web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Deploy API to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up \
+            --service "${{ secrets.RAILWAY_SERVICE_ID_API }}" \
+            --environment "${{ vars.RAILWAY_ENVIRONMENT }}" \
+            --detach
+
+      - name: Verify API health
+        run: |
+          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health"
+          curl --fail --show-error --silent "${{ vars.VITE_API_BASE_URL }}/health/ready"
